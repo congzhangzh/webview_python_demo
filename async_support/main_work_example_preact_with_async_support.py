@@ -279,6 +279,9 @@ async def counter():
 
 # 主函数
 def main():
+    # use WEBVIEW_VERSION, WEBVIEW_DOWNLOAD_BASE to custom where to download webview
+    # refs:
+    #   https://github.com/congzhangzh/webview_python?tab=readme-ov-file#environment-variables
     webview = Webview(debug=True)
 
     # Bind Python functions
