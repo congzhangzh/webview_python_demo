@@ -8,6 +8,8 @@ from pathlib import Path
 from webview.webview import Webview, Size, SizeHint
 from urllib.parse import quote
 
+import pathlib
+
 # 工具路径配置
 USER_HOME = str(Path.home())
 VS_CODE_PATH = os.path.join(USER_HOME, ".vscode")
@@ -187,10 +189,9 @@ def main():
     webview.size = Size(1024, 768, SizeHint.NONE)
     
     current_dir = os.path.dirname(os.path.abspath(__file__))
+    html_path=str(Path(__file__).with_suffix('.html'))
     #html_path = os.path.join(current_dir, 'index.html')
-    html_path = os.path.join(current_dir, 'index.html')
     webview.navigate(f"file://{html_path}")
-
     webview.run()
 
 if __name__ == "__main__":
