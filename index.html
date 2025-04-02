@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>本地程序管理助手</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 16px;
+            font-weight: 500;
+            color: #777;
+        }
+        
+        .tab.active {
+            color: #2980b9;
+            border-bottom: 2px solid #2980b9;
+        }
+        
+        .tab-content {
+            display: none;
+            padding: 20px 0;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .card {
+            background: #f9f9f9;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .card-title {
+            font-size: 18px;
+            font-weight: 500;
+        }
+        
+        .status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .status-installed {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-not-installed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: #2980b9;
+            color: white;
+        }
+        
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #3498db;
+        }
+        
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .card-body {
+            margin-top: 10px;
+        }
+        
+        textarea {
+            width: 100%;
+            height: 200px;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            font-family: monospace;
+            margin-bottom: 10px;
+        }
+        
+        .message {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        
+        .message-success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .message-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>本地程序管理助手</h1>
+        
+        <div class="tabs">
+            <button class="tab active" data-tab="conan">Conan管理</button>
+            <button class="tab" data-tab="conan-cache">Conan缓存</button>
+            <button class="tab" data-tab="vscode-continue">VS Code Continue</button>
+            <button class="tab" data-tab="vscode-cppcheck">VS Code Cppcheck</button>
+        </div>
+        
+        <!-- Conan管理 -->
+        <div class="tab-content active" id="conan">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Conan包管理器</h2>
+                    <span id="conan-status" class="status">检查中...</span>
+                </div>
+                <div class="card-body">
+                    <p>Conan是一个开源的C/C++包管理器，帮助您简化依赖项的管理。</p>
+                    <div class="actions">
+                        <button id="conan-install" class="btn btn-primary">安装Conan</button>
+                        <button id="conan-uninstall" class="btn btn-danger">卸载Conan</button>
+                    </div>
+                    <div id="conan-message" class="message hidden"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Conan缓存设置 -->
+        <div class="tab-content" id="conan-cache">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Conan缓存配置</h2>
+                </div>
+                <div class="card-body">
+                    <p>管理Conan缓存和配置文件</p>
+                    <textarea id="conan-settings"></textarea>
+                    <button id="save-conan-settings" class="btn btn-primary">保存设置</button>
+                    <div id="conan-settings-message" class="message hidden"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- VS Code Continue -->
+        <div class="tab-content" id="vscode-continue">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">VS Code Continue扩展</h2>
+                    <span id="continue-status" class="status">检查中...</span>
+                </div>
+                <div class="card-body">
+                    <p>VS Code Continue是一个AI编程助手扩展，提供智能代码完成和建议。</p>
+                    <div class="actions">
+                        <button id="continue-install" class="btn btn-primary">安装Continue</button>
+                        <button id="continue-uninstall" class="btn btn-danger">卸载Continue</button>
+                    </div>
+                    <div id="continue-message" class="message hidden"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- VS Code Cppcheck -->
+        <div class="tab-content" id="vscode-cppcheck">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">VS Code Cppcheck插件</h2>
+                    <span id="cppcheck-status" class="status">检查中...</span>
+                </div>
+                <div class="card-body">
+                    <p>Cppcheck是一个用于C/C++代码的静态分析工具，可以帮助检测潜在的代码问题。</p>
+                    <div class="actions">
+                        <button id="cppcheck-install" class="btn btn-primary">安装Cppcheck插件</button>
+                        <button id="cppcheck-uninstall" class="btn btn-danger">卸载Cppcheck插件</button>
+                    </div>
+                    <div id="cppcheck-message" class="message hidden"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 标签页切换
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                tab.classList.add('active');
+                const tabId = tab.getAttribute('data-tab');
+                document.getElementById(tabId).classList.add('active');
+            });
+        });
+
+        // 显示消息
+        function showMessage(elementId, message, isSuccess) {
+            const messageElement = document.getElementById(elementId);
+            messageElement.textContent = message;
+            messageElement.classList.remove('hidden', 'message-success', 'message-error');
+            messageElement.classList.add(isSuccess ? 'message-success' : 'message-error');
+            
+            // 5秒后自动隐藏
+            setTimeout(() => {
+                messageElement.classList.add('hidden');
+            }, 5000);
+        }
+
+        // Conan状态管理
+        async function updateConanStatus() {
+            try {
+                const status = await getConanStatus();
+                const statusElement = document.getElementById('conan-status');
+                const installButton = document.getElementById('conan-install');
+                const uninstallButton = document.getElementById('conan-uninstall');
+                
+                if (status.installed) {
+                    statusElement.textContent = `已安装 (${status.version})`;
+                    statusElement.className = 'status status-installed';
+                    installButton.disabled = true;
+                    uninstallButton.disabled = false;
+                } else {
+                    statusElement.textContent = '未安装';
+                    statusElement.className = 'status status-not-installed';
+                    installButton.disabled = false;
+                    uninstallButton.disabled = true;
+                }
+            } catch (error) {
+                console.error('获取Conan状态失败:', error);
+            }
+        }
+
+        // Conan安装
+        document.getElementById('conan-install').addEventListener('click', async () => {
+            try {
+                const result = await installConan();
+                if (result.success) {
+                    showMessage('conan-message', result.message, true);
+                    await updateConanStatus();
+                } else {
+                    showMessage('conan-message', result.message, false);
+                }
+            } catch (error) {
+                showMessage('conan-message', `安装失败: ${error}`, false);
+            }
+        });
+
+        // Conan卸载
+        document.getElementById('conan-uninstall').addEventListener('click', async () => {
+            try {
+                const result = await uninstallConan();
+                if (result.success) {
+                    showMessage('conan-message', result.message, true);
+                    await updateConanStatus();
+                } else {
+                    showMessage('conan-message', result.message, false);
+                }
+            } catch (error) {
+                showMessage('conan-message', `卸载失败: ${error}`, false);
+            }
+        });
+
+        // Conan缓存设置
+        async function loadConanSettings() {
+            try {
+                const settings = await getConanCacheSettings();
+                const textarea = document.getElementById('conan-settings');
+                
+                if (settings.exists) {
+                    textarea.value = settings.content;
+                } else {
+                    textarea.value = '# Conan设置文件不存在或无法读取\n# 保存后将创建新的设置文件';
+                }
+            } catch (error) {
+                console.error('加载Conan设置失败:', error);
+            }
+        }
+
+        document.getElementById('save-conan-settings').addEventListener('click', async () => {
+            try {
+                const textarea = document.getElementById('conan-settings');
+                const result = await updateConanCacheSettings(textarea.value);
+                
+                if (result.success) {
+                    showMessage('conan-settings-message', '设置保存成功', true);
+                } else {
+                    showMessage('conan-settings-message', `保存失败: ${result.message}`, false);
+                }
+            } catch (error) {
+                showMessage('conan-settings-message', `保存失败: ${error}`, false);
+            }
+        });
+
+        // VS Code Continue状态管理
+        async function updateContinueStatus() {
+            try {
+                const status = await getVSCodeContinueStatus();
+                const statusElement = document.getElementById('continue-status');
+                const installButton = document.getElementById('continue-install');
+                const uninstallButton = document.getElementById('continue-uninstall');
+                
+                if (status.installed) {
+                    statusElement.textContent = `已安装 (${status.version})`;
+                    statusElement.className = 'status status-installed';
+                    installButton.disabled = true;
+                    uninstallButton.disabled = false;
+                } else {
+                    statusElement.textContent = '未安装';
+                    statusElement.className = 'status status-not-installed';
+                    installButton.disabled = false;
+                    uninstallButton.disabled = true;
+                }
+            } catch (error) {
+                console.error('获取Continue状态失败:', error);
+            }
+        }
+
+        // VS Code Continue安装
+        document.getElementById('continue-install').addEventListener('click', async () => {
+            try {
+                const result = await installVSCodeContinue();
+                if (result.success) {
+                    showMessage('continue-message', result.message, true);
+                    await updateContinueStatus();
+                } else {
+                    showMessage('continue-message', result.message, false);
+                }
+            } catch (error) {
+                showMessage('continue-message', `安装失败: ${error}`, false);
+            }
+        });
+
+        // VS Code Continue卸载
+        document.getElementById('continue-uninstall').addEventListener('click', async () => {
+            try {
+                const result = await uninstallVSCodeContinue();
+                if (result.success) {
+                    showMessage('continue-message', result.message, true);
+                    await updateContinueStatus();
+                } else {
+                    showMessage('continue-message', result.message, false);
+                }
+            } catch (error) {
+                showMessage('continue-message', `卸载失败: ${error}`, false);
+            }
+        });
+
+        // Cppcheck状态管理
+        async function updateCppcheckStatus() {
+            try {
+                const status = await getCppcheckStatus();
+                const statusElement = document.getElementById('cppcheck-status');
+                const installButton = document.getElementById('cppcheck-install');
+                const uninstallButton = document.getElementById('cppcheck-uninstall');
+                
+                if (status.installed) {
+                    statusElement.textContent = '已安装';
+                    statusElement.className = 'status status-installed';
+                    installButton.disabled = true;
+                    uninstallButton.disabled = false;
+                } else {
+                    statusElement.textContent = '未安装';
+                    statusElement.className = 'status status-not-installed';
+                    installButton.disabled = false;
+                    uninstallButton.disabled = true;
+                }
+            } catch (error) {
+                console.error('获取Cppcheck状态失败:', error);
+            }
+        }
+
+        // Cppcheck安装
+        document.getElementById('cppcheck-install').addEventListener('click', async () => {
+            try {
+                const result = await installCppcheck();
+                if (result.success) {
+                    showMessage('cppcheck-message', result.message, true);
+                    await updateCppcheckStatus();
+                } else {
+                    showMessage('cppcheck-message', result.message, false);
+                }
+            } catch (error) {
+                showMessage('cppcheck-message', `安装失败: ${error}`, false);
+            }
+        });
+
+        // Cppcheck卸载
+        document.getElementById('cppcheck-uninstall').addEventListener('click', async () => {
+            try {
+                const result = await uninstallCppcheck();
+                if (result.success) {
+                    showMessage('cppcheck-message', result.message, true);
+                    await updateCppcheckStatus();
+                } else {
+                    showMessage('cppcheck-message', result.message, false);
+                }
+            } catch (error) {
+                showMessage('cppcheck-message', `卸载失败: ${error}`, false);
+            }
+        });
+
+        // 页面加载时初始化
+        window.addEventListener('DOMContentLoaded', async () => {
+            await updateConanStatus();
+            await loadConanSettings();
+            await updateContinueStatus();
+            await updateCppcheckStatus();
+        });
+    </script>
+</body>
+</html>
+
