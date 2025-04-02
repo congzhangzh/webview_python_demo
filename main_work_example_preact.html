@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>本地程序管理助手</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 16px;
+            font-weight: 500;
+            color: #777;
+        }
+        
+        .tab.active {
+            color: #2980b9;
+            border-bottom: 2px solid #2980b9;
+        }
+        
+        .tab-content {
+            display: none;
+            padding: 20px 0;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .card {
+            background: #f9f9f9;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .card-title {
+            font-size: 18px;
+            font-weight: 500;
+        }
+        
+        .status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .status-installed {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-not-installed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: #2980b9;
+            color: white;
+        }
+        
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #3498db;
+        }
+        
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .card-body {
+            margin-top: 10px;
+        }
+        
+        textarea {
+            width: 100%;
+            height: 200px;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            font-family: monospace;
+            margin-bottom: 10px;
+        }
+        
+        .message {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        
+        .message-success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .message-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+    <!-- 引入离线Preact库 -->
+    <script src="./preact.min.js"></script>
+    <script src="./hooks.min.js"></script>
+    <script src="./htm.min.js"></script>
+</head>
+<body>
+    <div id="app"></div>
+
+    <script>
+        // 从全局对象中获取Preact函数
+        const { render, h } = preact;
+        const { useState, useEffect } = preactHooks;
+        const html = htm.bind(h);
+
+        // 消息组件
+        function Message({ text, isSuccess, visible }) {
+            if (!visible) return null;
+            
+            const className = `message ${isSuccess ? 'message-success' : 'message-error'}`;
+            return html`<div class=${className}>${text}</div>`;
+        }
+
+        // 状态标签组件
+        function StatusBadge({ installed, version }) {
+            const className = `status ${installed ? 'status-installed' : 'status-not-installed'}`;
+            const text = installed ? `已安装 ${version ? `(${version})` : ''}` : '未安装';
+            
+            return html`<span class=${className}>${text}</span>`;
+        }
+
+        // Conan管理组件
+        function ConanManager() {
+            const [status, setStatus] = useState({ installed: false });
+            const [message, setMessage] = useState({ text: '', isSuccess: false, visible: false });
+            
+            // 获取状态
+            const fetchStatus = async () => {
+                try {
+                    const result = await getConanStatus();
+                    setStatus(result);
+                } catch (error) {
+                    console.error('获取Conan状态失败:', error);
+                }
+            };
+            
+            // 安装Conan
+            const handleInstall = async () => {
+                try {
+                    const result = await installConan();
+                    setMessage({ 
+                        text: result.message, 
+                        isSuccess: result.success, 
+                        visible: true 
+                    });
+                    
+                    if (result.success) {
+                        await fetchStatus();
+                    }
+                    
+                    // 5秒后隐藏消息
+                    setTimeout(() => {
+                        setMessage(prev => ({ ...prev, visible: false }));
+                    }, 5000);
+                } catch (error) {
+                    setMessage({ 
+                        text: `安装失败: ${error}`, 
+                        isSuccess: false, 
+                        visible: true 
+                    });
+                }
+            };
+            
+            // 卸载Conan
+            const handleUninstall = async () => {
+                try {
+                    const result = await uninstallConan();
+                    setMessage({ 
+                        text: result.message, 
+                        isSuccess: result.success, 
+                        visible: true 
+                    });
+                    
+                    if (result.success) {
+                        await fetchStatus();
+                    }
+                    
+                    // 5秒后隐藏消息
+                    setTimeout(() => {
+                        setMessage(prev => ({ ...prev, visible: false }));
+                    }, 5000);
+                } catch (error) {
+                    setMessage({ 
+                        text: `卸载失败: ${error}`, 
+                        isSuccess: false, 
+                        visible: true 
+                    });
+                }
+            };
+            
+            // 组件加载时获取状态
+            useEffect(() => {
+                fetchStatus();
+            }, []);
+            
+            return html`
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Conan包管理器</h2>
+                        <${StatusBadge} installed=${status.installed} version=${status.version} />
+                    </div>
+                    <div class="card-body">
+                        <p>Conan是一个开源的C/C++包管理器，帮助您简化依赖项的管理。</p>
+                        <div class="actions">
+                            <button 
+                                onClick=${handleInstall} 
+                                disabled=${status.installed}
+                                class="btn btn-primary"
+                            >
+                                安装Conan
+                            </button>
+                            <button 
+                                onClick=${handleUninstall} 
+                                disabled=${!status.installed}
+                                class="btn btn-danger"
+                            >
+                                卸载Conan
+                            </button>
+                        </div>
+                        <${Message} 
+                            text=${message.text} 
+                            isSuccess=${message.isSuccess} 
+                            visible=${message.visible} 
+                        />
+                    </div>
+                </div>
+            `;
+        }
+
+        // Conan缓存组件
+        function ConanCache() {
+            const [settings, setSettings] = useState('');
+            const [message, setMessage] = useState({ text: '', isSuccess: false, visible: false });
+            
+            // 加载设置
+            const loadSettings = async () => {
+                try {
+                    const result = await getConanCacheSettings();
+                    if (result.exists) {
+                        setSettings(result.content);
+                    } else {
+                        setSettings('# Conan设置文件不存在或无法读取\n# 保存后将创建新的设置文件');
+                    }
+                } catch (error) {
+                    console.error('加载Conan设置失败:', error);
+                }
+            };
+            
+            // 保存设置
+            const handleSave = async () => {
+                try {
+                    const result = await updateConanCacheSettings(settings);
+                    
+                    setMessage({ 
+                        text: result.success ? '设置保存成功' : `保存失败: ${result.message}`, 
+                        isSuccess: result.success, 
+                        visible: true 
+                    });
+                    
+                    // 5秒后隐藏消息
+                    setTimeout(() => {
+                        setMessage(prev => ({ ...prev, visible: false }));
+                    }, 5000);
+                } catch (error) {
+                    setMessage({ 
+                        text: `保存失败: ${error}`, 
+                        isSuccess: false, 
+                        visible: true 
+                    });
+                }
+            };
+            
+            // 组件加载时获取设置
+            useEffect(() => {
+                loadSettings();
+            }, []);
+            
+            return html`
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Conan缓存配置</h2>
+                    </div>
+                    <div class="card-body">
+                        <p>管理Conan缓存和配置文件</p>
+                        <textarea 
+                            value=${settings}
+                            onInput=${e => setSettings(e.target.value)}
+                        ></textarea>
+                        <button onClick=${handleSave} class="btn btn-primary">保存设置</button>
+                        <${Message} 
+                            text=${message.text} 
+                            isSuccess=${message.isSuccess} 
+                            visible=${message.visible} 
+                        />
+                    </div>
+                </div>
+            `;
+        }
+
+        // VSCode Continue组件
+        function VSCodeContinue() {
+            const [status, setStatus] = useState({ installed: false });
+            const [message, setMessage] = useState({ text: '', isSuccess: false, visible: false });
+            
+            // 获取状态
+            const fetchStatus = async () => {
+                try {
+                    const result = await getVSCodeContinueStatus();
+                    setStatus(result);
+                } catch (error) {
+                    console.error('获取Continue状态失败:', error);
+                }
+            };
+            
+            // 安装Continue
+            const handleInstall = async () => {
+                try {
+                    const result = await installVSCodeContinue();
+                    setMessage({ 
+                        text: result.message, 
+                        isSuccess: result.success, 
+                        visible: true 
+                    });
+                    
+                    if (result.success) {
+                        await fetchStatus();
+                    }
+                    
+                    // 5秒后隐藏消息
+                    setTimeout(() => {
+                        setMessage(prev => ({ ...prev, visible: false }));
+                    }, 5000);
+                } catch (error) {
+                    setMessage({ 
+                        text: `安装失败: ${error}`, 
+                        isSuccess: false, 
+                        visible: true 
+                    });
+                }
+            };
+            
+            // 卸载Continue
+            const handleUninstall = async () => {
+                try {
+                    const result = await uninstallVSCodeContinue();
+                    setMessage({ 
+                        text: result.message, 
+                        isSuccess: result.success, 
+                        visible: true 
+                    });
+                    
+                    if (result.success) {
+                        await fetchStatus();
+                    }
+                    
+                    // 5秒后隐藏消息
+                    setTimeout(() => {
+                        setMessage(prev => ({ ...prev, visible: false }));
+                    }, 5000);
+                } catch (error) {
+                    setMessage({ 
+                        text: `卸载失败: ${error}`, 
+                        isSuccess: false, 
+                        visible: true 
+                    });
+                }
+            };
+            
+            // 组件加载时获取状态
+            useEffect(() => {
+                fetchStatus();
+            }, []);
+            
+            return html`
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">VS Code Continue扩展</h2>
+                        <${StatusBadge} installed=${status.installed} version=${status.version} />
+                    </div>
+                    <div class="card-body">
+                        <p>VS Code Continue是一个AI编程助手扩展，提供智能代码完成和建议。</p>
+                        <div class="actions">
+                            <button 
+                                onClick=${handleInstall} 
+                                disabled=${status.installed}
+                                class="btn btn-primary"
+                            >
+                                安装Continue
+                            </button>
+                            <button 
+                                onClick=${handleUninstall} 
+                                disabled=${!status.installed}
+                                class="btn btn-danger"
+                            >
+                                卸载Continue
+                            </button>
+                        </div>
+                        <${Message} 
+                            text=${message.text} 
+                            isSuccess=${message.isSuccess} 
+                            visible=${message.visible} 
+                        />
+                    </div>
+                </div>
+            `;
+        }
+
+        // VSCode Cppcheck组件
+        function VSCodeCppcheck() {
+            const [status, setStatus] = useState({ installed: false });
+            const [message, setMessage] = useState({ text: '', isSuccess: false, visible: false });
+            
+            // 获取状态
+            const fetchStatus = async () => {
+                try {
+                    const result = await getCppcheckStatus();
+                    setStatus(result);
+                } catch (error) {
+                    console.error('获取Cppcheck状态失败:', error);
+                }
+            };
+            
+            // 安装Cppcheck
+            const handleInstall = async () => {
+                try {
+                    const result = await installCppcheck();
+                    setMessage({ 
+                        text: result.message, 
+                        isSuccess: result.success, 
+                        visible: true 
+                    });
+                    
+                    if (result.success) {
+                        await fetchStatus();
+                    }
+                    
+                    // 5秒后隐藏消息
+                    setTimeout(() => {
+                        setMessage(prev => ({ ...prev, visible: false }));
+                    }, 5000);
+                } catch (error) {
+                    setMessage({ 
+                        text: `安装失败: ${error}`, 
+                        isSuccess: false, 
+                        visible: true 
+                    });
+                }
+            };
+            
+            // 卸载Cppcheck
+            const handleUninstall = async () => {
+                try {
+                    const result = await uninstallCppcheck();
+                    setMessage({ 
+                        text: result.message, 
+                        isSuccess: result.success, 
+                        visible: true 
+                    });
+                    
+                    if (result.success) {
+                        await fetchStatus();
+                    }
+                    
+                    // 5秒后隐藏消息
+                    setTimeout(() => {
+                        setMessage(prev => ({ ...prev, visible: false }));
+                    }, 5000);
+                } catch (error) {
+                    setMessage({ 
+                        text: `卸载失败: ${error}`, 
+                        isSuccess: false, 
+                        visible: true 
+                    });
+                }
+            };
+            
+            // 组件加载时获取状态
+            useEffect(() => {
+                fetchStatus();
+            }, []);
+            
+            return html`
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">VS Code Cppcheck插件</h2>
+                        <${StatusBadge} installed=${status.installed} />
+                    </div>
+                    <div class="card-body">
+                        <p>Cppcheck是一个用于C/C++代码的静态分析工具，可以帮助检测潜在的代码问题。</p>
+                        <div class="actions">
+                            <button 
+                                onClick=${handleInstall} 
+                                disabled=${status.installed}
+                                class="btn btn-primary"
+                            >
+                                安装Cppcheck插件
+                            </button>
+                            <button 
+                                onClick=${handleUninstall} 
+                                disabled=${!status.installed}
+                                class="btn btn-danger"
+                            >
+                                卸载Cppcheck插件
+                            </button>
+                        </div>
+                        <${Message} 
+                            text=${message.text} 
+                            isSuccess=${message.isSuccess} 
+                            visible=${message.visible} 
+                        />
+                    </div>
+                </div>
+            `;
+        }
+
+        // 主应用组件
+        function App() {
+            const [activeTab, setActiveTab] = useState('conan');
+            
+            const handleTabClick = (tabId) => {
+                setActiveTab(tabId);
+            };
+            
+            return html`
+                <div class="container">
+                    <h1>本地程序管理助手</h1>
+                    
+                    <div class="tabs">
+                        ${[
+                            { id: 'conan', label: 'Conan管理' },
+                            { id: 'conan-cache', label: 'Conan缓存' },
+                            { id: 'vscode-continue', label: 'VS Code Continue' },
+                            { id: 'vscode-cppcheck', label: 'VS Code Cppcheck' }
+                        ].map(tab => html`
+                            <button 
+                                class=${`tab ${activeTab === tab.id ? 'active' : ''}`}
+                                onClick=${() => handleTabClick(tab.id)}
+                            >
+                                ${tab.label}
+                            </button>
+                        `)}
+                    </div>
+                    
+                    <div style="display: ${activeTab === 'conan' ? 'block' : 'none'}">
+                        <${ConanManager} />
+                    </div>
+                    
+                    <div style="display: ${activeTab === 'conan-cache' ? 'block' : 'none'}">
+                        <${ConanCache} />
+                    </div>
+                    
+                    <div style="display: ${activeTab === 'vscode-continue' ? 'block' : 'none'}">
+                        <${VSCodeContinue} />
+                    </div>
+                    
+                    <div style="display: ${activeTab === 'vscode-cppcheck' ? 'block' : 'none'}">
+                        <${VSCodeCppcheck} />
+                    </div>
+                </div>
+            `;
+        }
+
+        // 渲染应用
+        render(html`<${App} />`, document.getElementById('app'));
+    </script>
+</body>
+</html>
+
