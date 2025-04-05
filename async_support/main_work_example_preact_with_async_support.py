@@ -14,7 +14,20 @@
 # limitations under the License.
 #
 
-from asyncio_guest_run import asyncio_guest_run, schedule_on_asyncio
+import argparse
+
+"""解析命令行参数"""
+parser = argparse.ArgumentParser(description='本地程序管理助手')
+parser.add_argument('--kill', '-k', action='store_true', 
+                    help='杀死该程序的其他实例后退出')
+parser.add_argument('--check', '-c', action='store_true',
+                    help='检查该程序的其他实例但不杀死它们')
+    # 解析命令行参数
+args = parser.parse_args()
+
+# it's very slow after hook import, do it just when needed
+if not args.kill and not args.check:
+    from asyncio_guest_run import asyncio_guest_run, schedule_on_asyncio
 
 import traceback
 from queue import Queue
@@ -27,6 +40,8 @@ import asyncio
 from webview import Webview, SizeHint, Size
 
 import os
+import psutil
+import sys
 
 ASYNCIO_MSG = win32con.WM_APP + 3
 
@@ -270,8 +285,79 @@ async def counter():
         count += 1
         #print(f"I am alive: {count}")
 
+def kill_other_instances(check_only=False):
+    """查找并终止与当前程序相同的其他实例
+    
+    Args:
+        check_only: 如果为True，只检查不杀死进程
+    
+    Returns:
+        tuple: (是否找到实例, 找到的PID列表)
+    """
+    current_pid = os.getpid()
+    current_script_name = os.path.basename(__file__)
+    
+    found_processes = []
+    
+    for proc in psutil.process_iter(['pid', 'name', 'cmdline', 'cwd']):
+        try:
+            # 跳过当前进程
+            if proc.info['pid'] == current_pid:
+                continue
+                
+            # 检查是否是Python进程
+            if proc.info['name'].lower() in ('python.exe', 'pythonw.exe', 'python', 'python3'):
+                # 获取命令行参数
+                cmdline = proc.info['cmdline']
+                
+                # 检查命令行参数中是否包含当前脚本名
+                if cmdline and len(cmdline) > 1:
+                    # 判断脚本名称是否匹配，而不是完整路径
+                    script_arg = os.path.basename(cmdline[1])
+                    if script_arg == current_script_name:
+                        # 打印找到的进程信息（包括工作目录）
+                        print(f"发现程序的另一个实例 (PID: {proc.info['pid']}), 运行于: {proc.info['cwd']}")
+                        found_processes.append(proc.info['pid'])
+                        
+                        # 只在非check_only模式下杀死进程
+                        if not check_only:
+                            print(f"正在终止进程 (PID: {proc.info['pid']})")
+                            proc.terminate()
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess) as e:
+            print(f"访问进程时出错: {e}")
+            continue
+    
+    # 等待被终止的进程
+    if found_processes and not check_only:
+        psutil.wait_procs([psutil.Process(pid) for pid in found_processes if psutil.pid_exists(pid)], timeout=3)
+    
+    return bool(found_processes), found_processes
+
 # 主函数
 def main():
+    # 如果指定了--kill参数，杀死其他实例并退出
+    if args.kill:
+        killed, pids = kill_other_instances(check_only=False)
+        if killed:
+            print(f"已终止 {len(pids)} 个其他程序实例: {pids}")
+        else:
+            print("未发现其他程序实例")
+        return
+        
+    # 如果指定了--check参数，只检查其他实例
+    if args.check:
+        found, pids = kill_other_instances(check_only=True)
+        if found:
+            print(f"发现 {len(pids)} 个其他程序实例: {pids}")
+        else:
+            print("未发现其他程序实例")
+        return
+    
+    # 正常启动前，先杀死其他实例
+    # killed, pids = kill_other_instances(check_only=False)
+    # if killed:
+    #     print(f"已终止 {len(pids)} 个其他程序实例: {pids}")
+    
     # use WEBVIEW_VERSION, WEBVIEW_DOWNLOAD_BASE to custom where to download webview
     # refs:
     #   https://github.com/congzhangzh/webview_python?tab=readme-ov-file#environment-variables
