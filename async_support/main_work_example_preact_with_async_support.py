@@ -29,7 +29,6 @@ args = parser.parse_args()
 if not args.kill and not args.check:
     from asyncio_guest_run import asyncio_guest_run, schedule_on_asyncio
 
-import pathlib
 import traceback
 from queue import Queue
 
@@ -38,11 +37,66 @@ import win32con
 import win32gui
 
 import asyncio
-from webview import Webview, SizeHint, Size
 
 import os
 import psutil
 import sys
+import os
+import subprocess
+import json
+import sys
+import logging
+import datetime
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
+
+# # 在代码最前面添加，重定向标准输出和错误输出
+# if getattr(sys, 'frozen', False):
+#     # 打包后的应用程序，禁用标准输出/错误
+#     sys.stdout = open(os.devnull, 'w')
+#     sys.stderr = open(os.devnull, 'w')
+
+# 全局日志设置
+def setup_file_logging():
+    """设置简单的全局文件日志"""
+    # 创建日志目录(用户文档目录下)
+    log_dir = '.'
+    os.makedirs(log_dir, exist_ok=True)
+    
+    # 日志文件路径
+    log_file = os.path.join(log_dir, 'app.log')
+    
+    # 配置根日志记录器
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    
+    # 创建文件处理器(最大5MB，保留3个备份)
+    file_handler = RotatingFileHandler(
+        log_file, maxBytes=5*1024*1024, backupCount=3, encoding='utf-8'
+    )
+    
+    # 设置格式
+    formatter = logging.Formatter(
+        '%(asctime)s [%(levelname)s] %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+    file_handler.setFormatter(formatter)
+    
+    # 添加处理器
+    logger.addHandler(file_handler)
+    
+    # 记录启动信息
+    logging.info("=" * 50)
+    logging.info(f"程序启动 - {datetime.datetime.now()}")
+    logging.info(f"版本: 1.0.0")
+    logging.info(f"运行路径: {os.path.abspath('.')}")
+    logging.info("=" * 50)
+    
+    return logger
+
+logger = setup_file_logging()
+
+from webview import Webview, SizeHint, Size
 
 ASYNCIO_MSG = win32con.WM_APP + 3
 
@@ -125,84 +179,97 @@ class WebviewHost:
     def mainloop(self):
         self.webview.run()
 
-import os
-import subprocess
-import json
-import sys
-import logging
-import datetime
-from logging.handlers import RotatingFileHandler
-
-from pathlib import Path
-from webview.webview import Webview, Size, SizeHint
-from urllib.parse import quote
-
 # 工具路径配置
 USER_HOME = str(Path.home())
 VS_CODE_PATH = os.path.join(USER_HOME, ".vscode")
 VS_CONTINUE_PATH = os.path.join(VS_CODE_PATH, "extensions", "continue")
 CONAN_HOME = os.path.join(USER_HOME, ".conan")
 
-# Python函数 - Conan管理
-def get_conan_status():
-    """获取Conan安装状态"""
+# 通用的异步子进程执行函数
+async def run_process_async(cmd, **kwargs):
+    """通用的异步子进程执行函数"""
     try:
-        result = subprocess.run(["conan", "--version"], capture_output=True, text=True)
-        if result.returncode == 0:
+        # 添加创建无窗口标志（Windows平台）
+        if sys.platform == 'win32' and 'creationflags' not in kwargs:
+            kwargs['creationflags'] = subprocess.CREATE_NO_WINDOW
+            
+        # 设置默认的stdout和stderr捕获
+        kwargs.setdefault('stdout', asyncio.subprocess.PIPE)
+        kwargs.setdefault('stderr', asyncio.subprocess.PIPE)
+        
+        # 记录命令执行信息
+        start_time = time.time()
+        logging.info(f"执行命令: {' '.join(cmd)}")
+        
+        # 创建并等待子进程
+        process = await asyncio.create_subprocess_exec(*cmd, **kwargs)
+        stdout, stderr = await process.communicate()
+        
+        # 计算执行时间并记录结果
+        exec_time = time.time() - start_time
+        if process.returncode == 0:
+            logging.info(f"命令执行成功，耗时: {exec_time:.2f}秒")
+        else:
+            logging.warning(f"命令执行失败，返回码: {process.returncode}，耗时: {exec_time:.2f}秒")
+            
+        # 返回结果
+        return {
+            'returncode': process.returncode,
+            'stdout': stdout.decode('utf-8', errors='ignore') if stdout else '',
+            'stderr': stderr.decode('utf-8', errors='ignore') if stderr else '',
+            'success': process.returncode == 0
+        }
+    except Exception as e:
+        logging.error(f"执行命令异常: {e}")
+        return {
+            'returncode': -1,
+            'stdout': '',
+            'stderr': str(e),
+            'success': False,
+            'error': str(e)
+        } 
+
+# Python函数 - Conan管理
+async def get_conan_status():
+    """获取Conan安装状态 (异步版本)"""
+    try:
+        result = await run_process_async(["conan", "--version"])
+        if result['success']:
             return {
                 "installed": True,
-                "version": result.stdout.strip()
+                "version": result['stdout'].strip()
             }
         return {"installed": False}
-    except FileNotFoundError:
+    except Exception as e:
+        logging.error(f"获取Conan状态时出错: {e}")
         return {"installed": False}
 
-def install_conan():
-    """安装Conan"""
+async def install_conan():
+    """安装Conan (异步版本)"""
     try:
-        result = subprocess.run(["pip", "install", "conan"], capture_output=True, text=True)
-        if result.returncode == 0:
+        result = await run_process_async(["pip", "install", "conan"])
+        if result['success']:
             return {"success": True, "message": "Conan安装成功"}
-        return {"success": False, "message": f"安装失败: {result.stderr}"}
+        return {"success": False, "message": f"安装失败: {result['stderr']}"}
     except Exception as e:
+        logging.error(f"安装Conan时出错: {e}")
         return {"success": False, "message": str(e)}
 
-def uninstall_conan():
-    """卸载Conan"""
+async def uninstall_conan():
+    """卸载Conan (异步版本)"""
     try:
-        result = subprocess.run(["pip", "uninstall", "-y", "conan"], capture_output=True, text=True)
-        if result.returncode == 0:
+        result = await run_process_async(["pip", "uninstall", "-y", "conan"])
+        if result['success']:
             return {"success": True, "message": "Conan卸载成功"}
-        return {"success": False, "message": f"卸载失败: {result.stderr}"}
+        return {"success": False, "message": f"卸载失败: {result['stderr']}"}
     except Exception as e:
-        return {"success": False, "message": str(e)}
-
-def get_conan_cache_settings():
-    """获取Conan缓存设置"""
-    settings_path = os.path.join(CONAN_HOME, "settings.yml")
-    if not os.path.exists(settings_path):
-        return {"exists": False}
-    
-    try:
-        with open(settings_path, 'r') as f:
-            return {"exists": True, "content": f.read()}
-    except Exception as e:
-        return {"exists": False, "error": str(e)}
-
-def update_conan_cache_settings(settings):
-    """更新Conan缓存设置"""
-    settings_path = os.path.join(CONAN_HOME, "settings.yml")
-    try:
-        os.makedirs(os.path.dirname(settings_path), exist_ok=True)
-        with open(settings_path, 'w') as f:
-            f.write(settings)
-        return {"success": True}
-    except Exception as e:
+        logging.error(f"卸载Conan时出错: {e}")
         return {"success": False, "message": str(e)}
 
 # Python函数 - VS Code Continue管理
-def get_vscode_continue_status():
-    """获取VS Code Continue状态"""
+async def get_vscode_continue_status():
+    """获取VS Code Continue状态 (异步版本)"""
+    # 文件操作保持同步，不需要异步
     if os.path.exists(VS_CONTINUE_PATH):
         try:
             with open(os.path.join(VS_CONTINUE_PATH, "package.json"), 'r') as f:
@@ -216,71 +283,141 @@ def get_vscode_continue_status():
             return {"installed": True, "version": "未知"}
     return {"installed": False}
 
-def install_vscode_continue():
-    """安装VS Code Continue"""
+async def install_vscode_continue():
+    """安装VS Code Continue (异步版本)"""
     try:
-        result = subprocess.run(["code", "--install-extension", "continue.continue"], 
-                               capture_output=True, text=True)
-        if result.returncode == 0:
+        result = await run_process_async(["code", "--install-extension", "continue.continue"])
+        if result['success']:
             return {"success": True, "message": "VS Code Continue安装成功"}
-        return {"success": False, "message": f"安装失败: {result.stderr}"}
+        return {"success": False, "message": f"安装失败: {result['stderr']}"}
     except Exception as e:
+        logging.error(f"安装VS Code Continue时出错: {e}")
         return {"success": False, "message": str(e)}
 
-def uninstall_vscode_continue():
-    """卸载VS Code Continue"""
+async def uninstall_vscode_continue():
+    """卸载VS Code Continue (异步版本)"""
     try:
-        result = subprocess.run(["code", "--uninstall-extension", "continue.continue"], 
-                               capture_output=True, text=True)
-        if result.returncode == 0:
+        result = await run_process_async(["code", "--uninstall-extension", "continue.continue"])
+        if result['success']:
             return {"success": True, "message": "VS Code Continue卸载成功"}
-        return {"success": False, "message": f"卸载失败: {result.stderr}"}
+        return {"success": False, "message": f"卸载失败: {result['stderr']}"}
     except Exception as e:
+        logging.error(f"卸载VS Code Continue时出错: {e}")
         return {"success": False, "message": str(e)}
 
 # Python函数 - VS Code Cppcheck插件管理
-def get_cppcheck_status():
-    """获取Cppcheck插件状态"""
+async def get_cppcheck_status():
+    """获取Cppcheck插件状态 (异步版本)"""
     try:
-        result = subprocess.run(["code", "--list-extensions"], capture_output=True, text=True)
-        if "jbenden.c-cpp-flylint" in result.stdout:
+        result = await run_process_async(["code", "--list-extensions"])
+        if result['success'] and "jbenden.c-cpp-flylint" in result['stdout']:
             return {"installed": True}
         return {"installed": False}
-    except Exception:
-        return {"installed": False, "error": "无法检查状态"}
+    except Exception as e:
+        logging.error(f"获取Cppcheck状态时出错: {e}")
+        return {"installed": False, "error": str(e)}
 
-def install_cppcheck():
-    """安装Cppcheck插件"""
+async def install_cppcheck():
+    """安装Cppcheck插件 (异步版本)"""
     try:
-        result = subprocess.run(["code", "--install-extension", "jbenden.c-cpp-flylint"], 
-                               capture_output=True, text=True)
-        if result.returncode == 0:
+        result = await run_process_async(["code", "--install-extension", "jbenden.c-cpp-flylint"])
+        if result['success']:
             return {"success": True, "message": "Cppcheck插件安装成功"}
-        return {"success": False, "message": f"安装失败: {result.stderr}"}
+        return {"success": False, "message": f"安装失败: {result['stderr']}"}
     except Exception as e:
+        logging.error(f"安装Cppcheck时出错: {e}")
         return {"success": False, "message": str(e)}
 
-def uninstall_cppcheck():
-    """卸载Cppcheck插件"""
+async def uninstall_cppcheck():
+    """卸载Cppcheck插件 (异步版本)"""
     try:
-        result = subprocess.run(["code", "--uninstall-extension", "jbenden.c-cpp-flylint"], 
-                               capture_output=True, text=True)
-        if result.returncode == 0:
+        result = await run_process_async(["code", "--uninstall-extension", "jbenden.c-cpp-flylint"])
+        if result['success']:
             return {"success": True, "message": "Cppcheck插件卸载成功"}
-        return {"success": False, "message": f"卸载失败: {result.stderr}"}
+        return {"success": False, "message": f"卸载失败: {result['stderr']}"}
     except Exception as e:
+        logging.error(f"卸载Cppcheck时出错: {e}")
         return {"success": False, "message": str(e)}
 
-# Python functions that can be called from JavaScript
-def hello():
-    #webview.eval("updateFromPython('Hello from Python!')")
-    return "Hello from Python!"
+async def kill_other_instances_async(check_only=False):
+    """查找并终止与当前程序相同的其他实例 (异步版本)
+    
+    Args:
+        check_only: 如果为True，只检查不杀死进程
+    
+    Returns:
+        dict: 包含操作结果的字典
+    """
+    current_pid = os.getpid()
+    current_script_name = os.path.basename(__file__)
+    
+    found_processes = []
+    
+    # 这部分暂时保持同步，因为psutil操作通常很快
+    for proc in psutil.process_iter(['pid', 'name', 'cmdline', 'cwd']):
+        try:
+            # 跳过当前进程
+            if proc.info['pid'] == current_pid:
+                continue
+                
+            # 检查是否是Python进程
+            if proc.info['name'].lower() in ('python.exe', 'pythonw.exe', 'python', 'python3'):
+                # 获取命令行参数
+                cmdline = proc.info['cmdline']
+                
+                # 检查命令行参数中是否包含当前脚本名
+                if cmdline and len(cmdline) > 1:
+                    # 判断脚本名称是否匹配，而不是完整路径
+                    script_arg = os.path.basename(cmdline[1])
+                    if script_arg == current_script_name:
+                        # 记录找到的进程信息
+                        logging.info(f"发现程序的另一个实例 (PID: {proc.info['pid']}), 运行于: {proc.info['cwd']}")
+                        found_processes.append(proc.info['pid'])
+                        
+                        # 只在非check_only模式下杀死进程
+                        if not check_only:
+                            logging.info(f"正在终止进程 (PID: {proc.info['pid']})")
+                            proc.terminate()
+        except Exception as e:
+            logging.error(f"访问进程时出错: {e}")
+            continue
+    
+    # 等待被终止的进程 - 这里使用asyncio.sleep替代同步等待
+    if found_processes and not check_only:
+        # 等待3秒，让进程有时间终止
+        await asyncio.sleep(3)
+    
+    return {
+        "found": bool(found_processes),
+        "pids": found_processes,
+        "count": len(found_processes)
+    } 
 
-def add(a, b):
-    return a + b
+# 修改非subprocess但仍然是I/O操作的函数，使其异步
+async def get_conan_cache_settings():
+    """获取Conan缓存设置 (异步版本)"""
+    settings_path = os.path.join(CONAN_HOME, "settings.yml")
+    if not os.path.exists(settings_path):
+        return {"exists": False}
+    
+    try:
+        with open(settings_path, 'r') as f:
+            return {"exists": True, "content": f.read()}
+    except Exception as e:
+        logging.error(f"读取Conan缓存设置时出错: {e}")
+        return {"exists": False, "error": str(e)}
 
-def demo():
-    return "demo"
+async def update_conan_cache_settings(settings):
+    """更新Conan缓存设置 (异步版本)"""
+    settings_path = os.path.join(CONAN_HOME, "settings.yml")
+    try:
+        os.makedirs(os.path.dirname(settings_path), exist_ok=True)
+        with open(settings_path, 'w') as f:
+            f.write(settings)
+        return {"success": True}
+    except Exception as e:
+        logging.error(f"更新Conan缓存设置时出错: {e}")
+        return {"success": False, "message": str(e)} 
 
 async def counter():
     count = 0   
@@ -337,47 +474,6 @@ def kill_other_instances(check_only=False):
     
     return bool(found_processes), found_processes
 
-
-# 全局日志设置
-def setup_file_logging():
-    """设置简单的全局文件日志"""
-    # 创建日志目录(用户文档目录下)
-    log_dir = '.'
-    os.makedirs(log_dir, exist_ok=True)
-    
-    # 日志文件路径
-    log_file = os.path.join(log_dir, 'app.log')
-    
-    # 配置根日志记录器
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
-    
-    # 创建文件处理器(最大5MB，保留3个备份)
-    file_handler = RotatingFileHandler(
-        log_file, maxBytes=5*1024*1024, backupCount=3, encoding='utf-8'
-    )
-    
-    # 设置格式
-    formatter = logging.Formatter(
-        '%(asctime)s [%(levelname)s] %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
-    )
-    file_handler.setFormatter(formatter)
-    
-    # 添加处理器
-    logger.addHandler(file_handler)
-    
-    # 记录启动信息
-    logging.info("=" * 50)
-    logging.info(f"程序启动 - {datetime.datetime.now()}")
-    logging.info(f"版本: 1.0.0")
-    logging.info(f"运行路径: {os.path.abspath('.')}")
-    logging.info("=" * 50)
-    
-    return logger
-
-logger = setup_file_logging()
-
 # 主函数
 def main():
     # 如果指定了--kill参数，杀死其他实例并退出
@@ -409,13 +505,10 @@ def main():
     webview = Webview(debug=True)
 
     # Bind Python functions
-    webview.bind("hello", hello)
-    webview.bind("add", add)
-    webview.bind("demo", demo)
 
     # Configure window
     webview.title = "Python-JavaScript Binding Demo"
-    webview.size = Size(640, 480, SizeHint.FIXED)
+    #webview.size = Size(640, 320, SizeHint.FIXED)
     
     # 绑定Python函数
     webview.bind("getConanStatus", get_conan_status)
@@ -446,7 +539,7 @@ def main():
     
     # 配置窗口
     webview.title = "本地程序管理助手"
-    webview.size = Size(1024, 768, SizeHint.NONE)
+    webview.size = Size(640, 480, SizeHint.FIXED)
     
     html_path=str(Path(__file__).resolve().with_suffix('.html'))
     print(f"html_path: {html_path}")
