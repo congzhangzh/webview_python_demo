@@ -268,7 +268,7 @@ async def counter():
     while True:
         await asyncio.sleep(5)
         count += 1
-        print(f"I am alive: {count}")
+        #print(f"I am alive: {count}")
 
 # 主函数
 def main():
