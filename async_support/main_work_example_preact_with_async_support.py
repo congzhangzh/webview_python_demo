@@ -236,13 +236,21 @@ async def run_process_async(cmd, **kwargs):
 async def get_conan_status():
     """获取Conan安装状态 (异步版本)"""
     try:
-        result = await run_process_async(["conan", "--version"])
+        # 设置超时避免长时间卡住UI
+        result = await asyncio.wait_for(
+            run_process_async(["conan", "--version"]), 
+            timeout=10.0  # 10秒超时
+        )
+        
         if result['success']:
             return {
                 "installed": True,
                 "version": result['stdout'].strip()
             }
         return {"installed": False}
+    except asyncio.TimeoutError:
+        logging.error("获取Conan状态超时")
+        return {"installed": False, "error": "检测超时"}
     except Exception as e:
         logging.error(f"获取Conan状态时出错: {e}")
         return {"installed": False}
@@ -535,12 +543,6 @@ def main():
     #   https://github.com/congzhangzh/webview_python?tab=readme-ov-file#environment-variables
     webview = Webview(debug=True)
 
-    # Bind Python functions
-
-    # Configure window
-    webview.title = "Python-JavaScript Binding Demo"
-    #webview.size = Size(640, 320, SizeHint.FIXED)
-    
     # 绑定Python函数
     webview.bind(get_conan_status.__name__, get_conan_status)
     webview.bind(install_conan.__name__, install_conan)
@@ -575,7 +577,8 @@ def main():
     html_path=str(Path(__file__).resolve().with_suffix('.html'))
     print(f"html_path: {html_path}")
     webview.navigate(f"file://{html_path}")
-        # --begin-- guest run
+    
+    # --begin-- guest run
     host = WebviewHost(webview)
     asyncio_guest_run(
         counter,

@@ -101,6 +101,26 @@
             color: #721c24;
         }
         
+        .status-loading {
+            background: #e2e3e5;
+            color: #383d41;
+            position: relative;
+            padding-right: 20px;
+        }
+        
+        .status-loading::after {
+            content: "...";
+            position: absolute;
+            right: 8px;
+            animation: loadingDots 1.5s infinite;
+        }
+        
+        @keyframes loadingDots {
+            0%, 20% { content: "."; }
+            40% { content: ".."; }
+            60%, 100% { content: "..."; }
+        }
+        
         .btn {
             padding: 8px 16px;
             border: none;
@@ -166,6 +186,13 @@
         .hidden {
             display: none;
         }
+        
+        .last-updated {
+            font-size: 12px;
+            color: #777;
+            margin-top: 8px;
+            text-align: right;
+        }
     </style>
     <!-- 引入离线Preact库 -->
     <script src="./preact.min.js"></script>
@@ -178,8 +205,14 @@
     <script>
         // 从全局对象中获取Preact函数
         const { render, h } = preact;
-        const { useState, useEffect } = preactHooks;
+        const { useState, useEffect, useCallback, useRef } = preactHooks;
         const html = htm.bind(h);
+
+        // 格式化日期时间
+        function formatDateTime(date) {
+            const now = date || new Date();
+            return now.toLocaleTimeString();
+        }
 
         // 消息组件
         function Message({ text, isSuccess, visible }) {
@@ -190,31 +223,77 @@
         }
 
         // 状态标签组件
-        function StatusBadge({ installed, version }) {
+        function StatusBadge({ installed, version, loading }) {
+            if (loading) {
+                return html`<span class="status status-loading">正在检测</span>`;
+            }
+            
             const className = `status ${installed ? 'status-installed' : 'status-not-installed'}`;
             const text = installed ? `已安装 ${version ? `(${version})` : ''}` : '未安装';
             
             return html`<span class=${className}>${text}</span>`;
         }
 
+        // 创建轮询钩子
+        function usePolling(callback, interval = 30000, deps = []) {
+            const savedCallback = useRef();
+            const [lastUpdated, setLastUpdated] = useState(new Date());
+            const [isPolling, setIsPolling] = useState(true);
+
+            // 记住最新的回调
+            useEffect(() => {
+                savedCallback.current = async () => {
+                    await callback();
+                    setLastUpdated(new Date());
+                };
+            }, [callback]);
+
+            // 设置轮询interval
+            useEffect(() => {
+                if (!isPolling) return;
+                
+                // 首次执行
+                savedCallback.current();
+                
+                const id = setInterval(() => {
+                    savedCallback.current();
+                }, interval);
+                
+                return () => clearInterval(id);
+            }, [interval, isPolling, ...deps]);
+
+            return { 
+                lastUpdated, 
+                isPolling,
+                setIsPolling,
+                refresh: () => savedCallback.current()
+            };
+        }
+
         // Conan管理组件
         function ConanManager() {
-            const [status, setStatus] = useState({ installed: false });
+            const [status, setStatus] = useState({ installed: false, loading: true });
             const [message, setMessage] = useState({ text: '', isSuccess: false, visible: false });
             
             // 获取状态
-            const fetchStatus = async () => {
+            const fetchStatus = useCallback(async () => {
                 try {
+                    setStatus(prev => ({ ...prev, loading: true }));
                     const result = await get_conan_status();
-                    setStatus(result);
+                    setStatus({ ...result, loading: false });
                 } catch (error) {
                     console.error('获取Conan状态失败:', error);
+                    setStatus(prev => ({ ...prev, loading: false }));
                 }
-            };
+            }, []);
+            
+            // 使用轮询钩子
+            const { lastUpdated, refresh } = usePolling(fetchStatus, 60000);
             
             // 安装Conan
             const handleInstall = async () => {
                 try {
+                    setStatus(prev => ({ ...prev, loading: true }));
                     const result = await install_conan();
                     setMessage({ 
                         text: result.message, 
@@ -222,15 +301,15 @@
                         visible: true 
                     });
                     
-                    if (result.success) {
-                        await fetchStatus();
-                    }
+                    // 安装后刷新状态
+                    await refresh();
                     
                     // 5秒后隐藏消息
                     setTimeout(() => {
                         setMessage(prev => ({ ...prev, visible: false }));
                     }, 5000);
                 } catch (error) {
+                    setStatus(prev => ({ ...prev, loading: false }));
                     setMessage({ 
                         text: `安装失败: ${error}`, 
                         isSuccess: false, 
@@ -242,6 +321,7 @@
             // 卸载Conan
             const handleUninstall = async () => {
                 try {
+                    setStatus(prev => ({ ...prev, loading: true }));
                     const result = await uninstall_conan();
                     setMessage({ 
                         text: result.message, 
@@ -249,15 +329,15 @@
                         visible: true 
                     });
                     
-                    if (result.success) {
-                        await fetchStatus();
-                    }
+                    // 卸载后刷新状态
+                    await refresh();
                     
                     // 5秒后隐藏消息
                     setTimeout(() => {
                         setMessage(prev => ({ ...prev, visible: false }));
                     }, 5000);
                 } catch (error) {
+                    setStatus(prev => ({ ...prev, loading: false }));
                     setMessage({ 
                         text: `卸载失败: ${error}`, 
                         isSuccess: false, 
@@ -266,33 +346,39 @@
                 }
             };
             
-            // 组件加载时获取状态
-            useEffect(() => {
-                fetchStatus();
-            }, []);
-            
             return html`
                 <div class="card">
                     <div class="card-header">
                         <h2 class="card-title">Conan包管理器</h2>
-                        <${StatusBadge} installed=${status.installed} version=${status.version} />
+                        <${StatusBadge} 
+                            installed=${status.installed} 
+                            version=${status.version} 
+                            loading=${status.loading} 
+                        />
                     </div>
                     <div class="card-body">
                         <p>Conan是一个开源的C/C++包管理器，帮助您简化依赖项的管理。</p>
                         <div class="actions">
                             <button 
                                 onClick=${handleInstall} 
-                                disabled=${status.installed}
+                                disabled=${status.installed || status.loading}
                                 class="btn btn-primary"
                             >
                                 安装Conan
                             </button>
                             <button 
                                 onClick=${handleUninstall} 
-                                disabled=${!status.installed}
+                                disabled=${!status.installed || status.loading}
                                 class="btn btn-danger"
                             >
                                 卸载Conan
+                            </button>
+                            <button 
+                                onClick=${refresh} 
+                                disabled=${status.loading}
+                                class="btn"
+                            >
+                                刷新状态
                             </button>
                         </div>
                         <${Message} 
@@ -300,6 +386,9 @@
                             isSuccess=${message.isSuccess} 
                             visible=${message.visible} 
                         />
+                        <div class="last-updated">
+                            上次检查: ${formatDateTime(lastUpdated)}
+                        </div>
                     </div>
                 </div>
             `;
@@ -308,26 +397,36 @@
         // Conan缓存组件
         function ConanCache() {
             const [settings, setSettings] = useState('');
+            const [loading, setLoading] = useState(true);
             const [message, setMessage] = useState({ text: '', isSuccess: false, visible: false });
             
             // 加载设置
-            const loadSettings = async () => {
+            const loadSettings = useCallback(async () => {
                 try {
+                    setLoading(true);
                     const result = await get_conan_cache_settings();
+                    setLoading(false);
+                    
                     if (result.exists) {
                         setSettings(result.content);
                     } else {
                         setSettings('# Conan设置文件不存在或无法读取\n# 保存后将创建新的设置文件');
                     }
                 } catch (error) {
+                    setLoading(false);
                     console.error('加载Conan设置失败:', error);
                 }
-            };
+            }, []);
+            
+            // 使用轮询钩子
+            const { lastUpdated, refresh } = usePolling(loadSettings, 120000);
             
             // 保存设置
             const handleSave = async () => {
                 try {
+                    setLoading(true);
                     const result = await update_conan_cache_settings(settings);
+                    setLoading(false);
                     
                     setMessage({ 
                         text: result.success ? '设置保存成功' : `保存失败: ${result.message}`, 
@@ -340,6 +439,7 @@
                         setMessage(prev => ({ ...prev, visible: false }));
                     }, 5000);
                 } catch (error) {
+                    setLoading(false);
                     setMessage({ 
                         text: `保存失败: ${error}`, 
                         isSuccess: false, 
@@ -348,28 +448,43 @@
                 }
             };
             
-            // 组件加载时获取设置
-            useEffect(() => {
-                loadSettings();
-            }, []);
-            
             return html`
                 <div class="card">
                     <div class="card-header">
                         <h2 class="card-title">Conan缓存配置</h2>
+                        ${loading ? html`<span class="status status-loading">加载中</span>` : null}
                     </div>
                     <div class="card-body">
                         <p>管理Conan缓存和配置文件</p>
                         <textarea 
                             value=${settings}
                             onInput=${e => setSettings(e.target.value)}
+                            disabled=${loading}
                         ></textarea>
-                        <button onClick=${handleSave} class="btn btn-primary">保存设置</button>
+                        <div>
+                            <button 
+                                onClick=${handleSave} 
+                                disabled=${loading}
+                                class="btn btn-primary"
+                            >
+                                保存设置
+                            </button>
+                            <button 
+                                onClick=${refresh} 
+                                disabled=${loading}
+                                class="btn"
+                            >
+                                刷新
+                            </button>
+                        </div>
                         <${Message} 
                             text=${message.text} 
                             isSuccess=${message.isSuccess} 
                             visible=${message.visible} 
                         />
+                        <div class="last-updated">
+                            上次检查: ${formatDateTime(lastUpdated)}
+                        </div>
                     </div>
                 </div>
             `;
@@ -377,22 +492,28 @@
 
         // VSCode Continue组件
         function VSCodeContinue() {
-            const [status, setStatus] = useState({ installed: false });
+            const [status, setStatus] = useState({ installed: false, loading: true });
             const [message, setMessage] = useState({ text: '', isSuccess: false, visible: false });
             
             // 获取状态
-            const fetchStatus = async () => {
+            const fetchStatus = useCallback(async () => {
                 try {
+                    setStatus(prev => ({ ...prev, loading: true }));
                     const result = await get_vscode_continue_status();
-                    setStatus(result);
+                    setStatus({ ...result, loading: false });
                 } catch (error) {
                     console.error('获取Continue状态失败:', error);
+                    setStatus(prev => ({ ...prev, loading: false }));
                 }
-            };
+            }, []);
+            
+            // 使用轮询钩子
+            const { lastUpdated, refresh } = usePolling(fetchStatus, 60000);
             
             // 安装Continue
             const handleInstall = async () => {
                 try {
+                    setStatus(prev => ({ ...prev, loading: true }));
                     const result = await install_vscode_continue();
                     setMessage({ 
                         text: result.message, 
@@ -400,15 +521,15 @@
                         visible: true 
                     });
                     
-                    if (result.success) {
-                        await fetchStatus();
-                    }
+                    // 刷新状态
+                    await refresh();
                     
                     // 5秒后隐藏消息
                     setTimeout(() => {
                         setMessage(prev => ({ ...prev, visible: false }));
                     }, 5000);
                 } catch (error) {
+                    setStatus(prev => ({ ...prev, loading: false }));
                     setMessage({ 
                         text: `安装失败: ${error}`, 
                         isSuccess: false, 
@@ -420,6 +541,7 @@
             // 卸载Continue
             const handleUninstall = async () => {
                 try {
+                    setStatus(prev => ({ ...prev, loading: true }));
                     const result = await uninstall_vscode_continue();
                     setMessage({ 
                         text: result.message, 
@@ -427,15 +549,15 @@
                         visible: true 
                     });
                     
-                    if (result.success) {
-                        await fetchStatus();
-                    }
+                    // 刷新状态
+                    await refresh();
                     
                     // 5秒后隐藏消息
                     setTimeout(() => {
                         setMessage(prev => ({ ...prev, visible: false }));
                     }, 5000);
                 } catch (error) {
+                    setStatus(prev => ({ ...prev, loading: false }));
                     setMessage({ 
                         text: `卸载失败: ${error}`, 
                         isSuccess: false, 
@@ -444,33 +566,39 @@
                 }
             };
             
-            // 组件加载时获取状态
-            useEffect(() => {
-                fetchStatus();
-            }, []);
-            
             return html`
                 <div class="card">
                     <div class="card-header">
                         <h2 class="card-title">VS Code Continue扩展</h2>
-                        <${StatusBadge} installed=${status.installed} version=${status.version} />
+                        <${StatusBadge} 
+                            installed=${status.installed} 
+                            version=${status.version} 
+                            loading=${status.loading} 
+                        />
                     </div>
                     <div class="card-body">
                         <p>VS Code Continue是一个AI编程助手扩展，提供智能代码完成和建议。</p>
                         <div class="actions">
                             <button 
                                 onClick=${handleInstall} 
-                                disabled=${status.installed}
+                                disabled=${status.installed || status.loading}
                                 class="btn btn-primary"
                             >
                                 安装Continue
                             </button>
                             <button 
                                 onClick=${handleUninstall} 
-                                disabled=${!status.installed}
+                                disabled=${!status.installed || status.loading}
                                 class="btn btn-danger"
                             >
                                 卸载Continue
+                            </button>
+                            <button 
+                                onClick=${refresh} 
+                                disabled=${status.loading}
+                                class="btn"
+                            >
+                                刷新状态
                             </button>
                         </div>
                         <${Message} 
@@ -478,6 +606,9 @@
                             isSuccess=${message.isSuccess} 
                             visible=${message.visible} 
                         />
+                        <div class="last-updated">
+                            上次检查: ${formatDateTime(lastUpdated)}
+                        </div>
                     </div>
                 </div>
             `;
@@ -485,22 +616,28 @@
 
         // VSCode Cppcheck组件
         function VSCodeCppcheck() {
-            const [status, setStatus] = useState({ installed: false });
+            const [status, setStatus] = useState({ installed: false, loading: true });
             const [message, setMessage] = useState({ text: '', isSuccess: false, visible: false });
             
             // 获取状态
-            const fetchStatus = async () => {
+            const fetchStatus = useCallback(async () => {
                 try {
+                    setStatus(prev => ({ ...prev, loading: true }));
                     const result = await get_cppcheck_status();
-                    setStatus(result);
+                    setStatus({ ...result, loading: false });
                 } catch (error) {
                     console.error('获取Cppcheck状态失败:', error);
+                    setStatus(prev => ({ ...prev, loading: false }));
                 }
-            };
+            }, []);
+            
+            // 使用轮询钩子
+            const { lastUpdated, refresh } = usePolling(fetchStatus, 60000);
             
             // 安装Cppcheck
             const handleInstall = async () => {
                 try {
+                    setStatus(prev => ({ ...prev, loading: true }));
                     const result = await install_cppcheck();
                     setMessage({ 
                         text: result.message, 
@@ -508,15 +645,15 @@
                         visible: true 
                     });
                     
-                    if (result.success) {
-                        await fetchStatus();
-                    }
+                    // 刷新状态
+                    await refresh();
                     
                     // 5秒后隐藏消息
                     setTimeout(() => {
                         setMessage(prev => ({ ...prev, visible: false }));
                     }, 5000);
                 } catch (error) {
+                    setStatus(prev => ({ ...prev, loading: false }));
                     setMessage({ 
                         text: `安装失败: ${error}`, 
                         isSuccess: false, 
@@ -528,6 +665,7 @@
             // 卸载Cppcheck
             const handleUninstall = async () => {
                 try {
+                    setStatus(prev => ({ ...prev, loading: true }));
                     const result = await uninstall_cppcheck();
                     setMessage({ 
                         text: result.message, 
@@ -535,15 +673,15 @@
                         visible: true 
                     });
                     
-                    if (result.success) {
-                        await fetchStatus();
-                    }
+                    // 刷新状态
+                    await refresh();
                     
                     // 5秒后隐藏消息
                     setTimeout(() => {
                         setMessage(prev => ({ ...prev, visible: false }));
                     }, 5000);
                 } catch (error) {
+                    setStatus(prev => ({ ...prev, loading: false }));
                     setMessage({ 
                         text: `卸载失败: ${error}`, 
                         isSuccess: false, 
@@ -552,33 +690,38 @@
                 }
             };
             
-            // 组件加载时获取状态
-            useEffect(() => {
-                fetchStatus();
-            }, []);
-            
             return html`
                 <div class="card">
                     <div class="card-header">
                         <h2 class="card-title">VS Code Cppcheck插件</h2>
-                        <${StatusBadge} installed=${status.installed} />
+                        <${StatusBadge} 
+                            installed=${status.installed} 
+                            loading=${status.loading} 
+                        />
                     </div>
                     <div class="card-body">
                         <p>Cppcheck是一个用于C/C++代码的静态分析工具，可以帮助检测潜在的代码问题。</p>
                         <div class="actions">
                             <button 
                                 onClick=${handleInstall} 
-                                disabled=${status.installed}
+                                disabled=${status.installed || status.loading}
                                 class="btn btn-primary"
                             >
                                 安装Cppcheck插件
                             </button>
                             <button 
                                 onClick=${handleUninstall} 
-                                disabled=${!status.installed}
+                                disabled=${!status.installed || status.loading}
                                 class="btn btn-danger"
                             >
                                 卸载Cppcheck插件
+                            </button>
+                            <button 
+                                onClick=${refresh} 
+                                disabled=${status.loading}
+                                class="btn"
+                            >
+                                刷新状态
                             </button>
                         </div>
                         <${Message} 
@@ -586,6 +729,9 @@
                             isSuccess=${message.isSuccess} 
                             visible=${message.visible} 
                         />
+                        <div class="last-updated">
+                            上次检查: ${formatDateTime(lastUpdated)}
+                        </div>
                     </div>
                 </div>
             `;
