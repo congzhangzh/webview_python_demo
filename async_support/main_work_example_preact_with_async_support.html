@@ -205,7 +205,7 @@
             // 获取状态
             const fetchStatus = async () => {
                 try {
-                    const result = await getConanStatus();
+                    const result = await get_conan_status();
                     setStatus(result);
                 } catch (error) {
                     console.error('获取Conan状态失败:', error);
@@ -215,7 +215,7 @@
             // 安装Conan
             const handleInstall = async () => {
                 try {
-                    const result = await installConan();
+                    const result = await install_conan();
                     setMessage({ 
                         text: result.message, 
                         isSuccess: result.success, 
@@ -242,7 +242,7 @@
             // 卸载Conan
             const handleUninstall = async () => {
                 try {
-                    const result = await uninstallConan();
+                    const result = await uninstall_conan();
                     setMessage({ 
                         text: result.message, 
                         isSuccess: result.success, 
@@ -313,7 +313,7 @@
             // 加载设置
             const loadSettings = async () => {
                 try {
-                    const result = await getConanCacheSettings();
+                    const result = await get_conan_cache_settings();
                     if (result.exists) {
                         setSettings(result.content);
                     } else {
@@ -327,7 +327,7 @@
             // 保存设置
             const handleSave = async () => {
                 try {
-                    const result = await updateConanCacheSettings(settings);
+                    const result = await update_conan_cache_settings(settings);
                     
                     setMessage({ 
                         text: result.success ? '设置保存成功' : `保存失败: ${result.message}`, 
@@ -383,7 +383,7 @@
             // 获取状态
             const fetchStatus = async () => {
                 try {
-                    const result = await getVSCodeContinueStatus();
+                    const result = await get_vscode_continue_status();
                     setStatus(result);
                 } catch (error) {
                     console.error('获取Continue状态失败:', error);
@@ -393,7 +393,7 @@
             // 安装Continue
             const handleInstall = async () => {
                 try {
-                    const result = await installVSCodeContinue();
+                    const result = await install_vscode_continue();
                     setMessage({ 
                         text: result.message, 
                         isSuccess: result.success, 
@@ -420,7 +420,7 @@
             // 卸载Continue
             const handleUninstall = async () => {
                 try {
-                    const result = await uninstallVSCodeContinue();
+                    const result = await uninstall_vscode_continue();
                     setMessage({ 
                         text: result.message, 
                         isSuccess: result.success, 
@@ -491,7 +491,7 @@
             // 获取状态
             const fetchStatus = async () => {
                 try {
-                    const result = await getCppcheckStatus();
+                    const result = await get_cppcheck_status();
                     setStatus(result);
                 } catch (error) {
                     console.error('获取Cppcheck状态失败:', error);
@@ -501,7 +501,7 @@
             // 安装Cppcheck
             const handleInstall = async () => {
                 try {
-                    const result = await installCppcheck();
+                    const result = await install_cppcheck();
                     setMessage({ 
                         text: result.message, 
                         isSuccess: result.success, 
@@ -528,7 +528,7 @@
             // 卸载Cppcheck
             const handleUninstall = async () => {
                 try {
-                    const result = await uninstallCppcheck();
+                    const result = await uninstall_cppcheck();
                     setMessage({ 
                         text: result.message, 
                         isSuccess: result.success, 

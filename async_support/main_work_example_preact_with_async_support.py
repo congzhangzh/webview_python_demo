@@ -542,19 +542,19 @@ def main():
     #webview.size = Size(640, 320, SizeHint.FIXED)
     
     # 绑定Python函数
-    webview.bind("getConanStatus", get_conan_status)
-    webview.bind("installConan", install_conan)
-    webview.bind("uninstallConan", uninstall_conan)
-    webview.bind("getConanCacheSettings", get_conan_cache_settings)
-    webview.bind("updateConanCacheSettings", update_conan_cache_settings)
+    webview.bind(get_conan_status.__name__, get_conan_status)
+    webview.bind(install_conan.__name__, install_conan)
+    webview.bind(uninstall_conan.__name__, uninstall_conan)
+    webview.bind(get_conan_cache_settings.__name__, get_conan_cache_settings)
+    webview.bind(update_conan_cache_settings.__name__, update_conan_cache_settings)
     
-    webview.bind("getVSCodeContinueStatus", get_vscode_continue_status)
-    webview.bind("installVSCodeContinue", install_vscode_continue)
-    webview.bind("uninstallVSCodeContinue", uninstall_vscode_continue)
+    webview.bind(get_vscode_continue_status.__name__, get_vscode_continue_status)
+    webview.bind(install_vscode_continue.__name__, install_vscode_continue)
+    webview.bind(uninstall_vscode_continue.__name__, uninstall_vscode_continue)
     
-    webview.bind("getCppcheckStatus", get_cppcheck_status)
-    webview.bind("installCppcheck", install_cppcheck)
-    webview.bind("uninstallCppcheck", uninstall_cppcheck)
+    webview.bind(get_cppcheck_status.__name__, get_cppcheck_status)
+    webview.bind(install_cppcheck.__name__, install_cppcheck)
+    webview.bind(uninstall_cppcheck.__name__, uninstall_cppcheck)
     
     # 检查JS库是否已下载
     current_dir = os.path.dirname(os.path.abspath(__file__))
