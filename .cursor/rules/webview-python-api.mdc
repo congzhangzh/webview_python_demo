@@ -1,0 +1,16 @@
+---
+description: webview-python-api
+globs: async_support/*.py, async_support/*.html
+alwaysApply: false
+---
+webview-python-api:
+
+- The webview_python library is based on the webview/webview project, using FFI to communicate with webview components. References: https://github.com/webview/webview, https://github.com/congzhangzh/webview_python, https://github.com/webview/webview_deno
+
+- Python functions are exposed to the web frontend through Webview.bind(action_name, action) from the backend. The bound action_name becomes directly callable in JavaScript using async/await syntax.
+
+- Both synchronous and asynchronous Python functions can be bound, but they will always be available as async/await functions in JavaScript. This reflects the inherent asynchronous nature of communication between the Python backend and web frontend through the webview bridge.
+
+- The RPC mechanism doesn't use HTTP, but instead relies on webview's internal communication channels.
+
+- The webview implementation maps to each platform's native web component: Edge on Windows, WebKit on Linux, and Safari on macOS.
