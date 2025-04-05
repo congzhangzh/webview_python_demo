@@ -33,7 +33,8 @@ def asyncio_guest_run(async_func, *async_func_args, run_sync_soon_threadsafe, ru
         try:
             nonlocal count
             count += 1
-            print(f"ui trigger counter: {count}")
+            if 'AYSNCIO_GUEST_RUN_DEBUG' in os.environ and os.environ['AYSNCIO_GUEST_RUN_DEBUG'] == '1':
+                print(f"ui trigger counter: {count}")
             if not loop.is_closed():
                 # 处理事件和回调
                 loop.process_events(events)

@@ -23,9 +23,6 @@ import win32api
 import win32con
 import win32gui
 
-#TODO why we need this?
-from outcome import Error
-
 import asyncio
 from webview import Webview, SizeHint, Size
 
@@ -115,15 +112,11 @@ class WebviewHost:
 import os
 import subprocess
 import json
-import shutil
-import time
 import sys
 
 from pathlib import Path
 from webview.webview import Webview, Size, SizeHint
 from urllib.parse import quote
-
-import pathlib
 
 # 工具路径配置
 USER_HOME = str(Path.home())
@@ -324,9 +317,8 @@ def main():
     webview.title = "本地程序管理助手"
     webview.size = Size(1024, 768, SizeHint.NONE)
     
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    html_path=str(Path(__file__).with_suffix('.html'))
-    #html_path = os.path.join(current_dir, 'index.html')
+    html_path=str(Path(__file__).resolve().with_suffix('.html'))
+    print(f"html_path: {html_path}")
     webview.navigate(f"file://{html_path}")
         # --begin-- guest run
     host = WebviewHost(webview)
