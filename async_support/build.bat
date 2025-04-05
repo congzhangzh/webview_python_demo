@@ -30,8 +30,9 @@ if %ERRORLEVEL% neq 0 (
 )
 
 echo 开始构建应用程序...
+REM --clean ^
+
 @REM pyinstaller --name="App Manager" ^
-@REM     --clean ^
 @REM     --noconfirm ^
 @REM     --add-data "*.html;." ^
 @REM     --add-data "*.js;." ^
@@ -39,11 +40,11 @@ echo 开始构建应用程序...
 @REM     --add-data "patches;patches" ^
 @REM     main_work_example_preact_with_async_support.py
 
-:TODO windowed will frozen&reactive by OS, which will flash the window, so we need to use --noconfirm
+REM --clean ^
+REM --noconsole ^
+
 pyinstaller --name="App Manager" ^
-    --clean ^
     --windowed ^
-    --noconsole ^
     --noconfirm ^
     --add-data "*.html;." ^
     --add-data "*.js;." ^
@@ -57,7 +58,7 @@ if %ERRORLEVEL% neq 0 (
 )
 
 echo 清理临时文件...
-if exist build rmdir /s /q build
+REM if exist build rmdir /s /q build
 
 echo 构建成功！
 echo APP Dir: %CD%\dist\App Manager\

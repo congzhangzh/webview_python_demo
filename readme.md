@@ -1,3 +1,9 @@
+## How to use
+```bash
+"App Manager\App Manager.exe"
+start /wait "" "App Manager\App Manager.exe" -k
+```
+
 ## 一、JavaScript库格式与浏览器兼容性
 
 ### 1. CommonJS格式
