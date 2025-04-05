@@ -29,6 +29,7 @@ args = parser.parse_args()
 if not args.kill and not args.check:
     from asyncio_guest_run import asyncio_guest_run, schedule_on_asyncio
 
+import pathlib
 import traceback
 from queue import Queue
 
@@ -128,6 +129,9 @@ import os
 import subprocess
 import json
 import sys
+import logging
+import datetime
+from logging.handlers import RotatingFileHandler
 
 from pathlib import Path
 from webview.webview import Webview, Size, SizeHint
@@ -332,6 +336,47 @@ def kill_other_instances(check_only=False):
         psutil.wait_procs([psutil.Process(pid) for pid in found_processes if psutil.pid_exists(pid)], timeout=3)
     
     return bool(found_processes), found_processes
+
+
+# 全局日志设置
+def setup_file_logging():
+    """设置简单的全局文件日志"""
+    # 创建日志目录(用户文档目录下)
+    log_dir = '.'
+    os.makedirs(log_dir, exist_ok=True)
+    
+    # 日志文件路径
+    log_file = os.path.join(log_dir, 'app.log')
+    
+    # 配置根日志记录器
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    
+    # 创建文件处理器(最大5MB，保留3个备份)
+    file_handler = RotatingFileHandler(
+        log_file, maxBytes=5*1024*1024, backupCount=3, encoding='utf-8'
+    )
+    
+    # 设置格式
+    formatter = logging.Formatter(
+        '%(asctime)s [%(levelname)s] %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+    file_handler.setFormatter(formatter)
+    
+    # 添加处理器
+    logger.addHandler(file_handler)
+    
+    # 记录启动信息
+    logging.info("=" * 50)
+    logging.info(f"程序启动 - {datetime.datetime.now()}")
+    logging.info(f"版本: 1.0.0")
+    logging.info(f"运行路径: {os.path.abspath('.')}")
+    logging.info("=" * 50)
+    
+    return logger
+
+logger = setup_file_logging()
 
 # 主函数
 def main():

@@ -31,8 +31,8 @@ if %ERRORLEVEL% neq 0 (
 
 echo 开始构建应用程序...
 pyinstaller --name="App Manager" ^
-    --windowed ^
     --clean ^
+    --windowed ^
     --noconfirm ^
     --add-data "*.html;." ^
     --add-data "*.js;." ^
