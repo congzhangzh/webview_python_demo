@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <title>Enhanced Ant Design CDN Example (Offline)</title>
+    <!-- 1. Local Ant Design CSS -->
+    <link rel="stylesheet" href="libs/reset.css" />
+    <link rel="stylesheet" href="libs/antd.min.css" />
+    <!-- Local Libs Styling (if needed) -->
+    <style>
+      body { padding: 20px; background-color: #f0f2f5; }
+      .card-margin { margin-bottom: 16px; }
+      .component-space > * { margin-bottom: 16px !important; }
+    </style>
+</head>
+<body>
+    <div id="root">Loading Enhanced Ant Design App (Offline)...</div>
+
+    <!-- 2. Local React & ReactDOM -->
+    <script src="libs/react.development.js" crossorigin></script>
+    <script src="libs/react-dom.development.js" crossorigin></script>
+    <!-- 3. Local Day.js and locale -->
+    <script src="libs/dayjs.min.js"></script>
+    <script src="libs/zh-cn.js"></script>
+    <script>dayjs.locale('zh-cn');</script>
+    <!-- 4. Local Ant Design JS -->
+    <script src="libs/antd.min.js"></script>
+    <!-- 5. Local Babel Standalone -->
+    <script src="libs/babel.min.js"></script>
+
+    <!-- 6. Your React App Logic (using Babel) -->
+    <script type="text/babel">
+        // Use setTimeout to ensure local libs are parsed before our code runs
+        // (Less critical for local files, but good practice)
+        setTimeout(() => {
+            console.log("Checking local libraries...");
+            if (!window.React || !window.ReactDOM || !window.antd || !window.dayjs || !window.Babel) { // Added Babel check
+                document.getElementById('root').innerHTML = '<p style="color: red;">Error: Failed to load core local libraries. Check console and if files exist in ./libs/</p>';
+                console.error("Missing Libraries:", {
+                    React: !!window.React,
+                    ReactDOM: !!window.ReactDOM,
+                    antd: !!window.antd,
+                    dayjs: !!window.dayjs,
+                    Babel: !!window.Babel
+                });
+                return;
+            }
+            console.log("Local libraries OK.");
+
+            // --- Same React Code as Before ---
+            const { useState, useCallback, StrictMode } = React;
+            const antd = window.antd;
+            const {
+                Button, DatePicker, message, version, Card, Tag, Modal, Progress, Space, Divider,
+                Input, Select, Switch, Slider, Alert, Spin, Tooltip, Tabs
+             } = antd;
+            const { Option } = Select;
+            const { TabPane } = Tabs;
+
+            function App() {
+                 // --- State Hooks ---
+                const [date, setDate] = useState(null);
+                const [isModalVisible, setIsModalVisible] = useState(false);
+                const [progress, setProgress] = useState(30);
+                const [modalLoading, setModalLoading] = useState(false);
+                const [textValue, setTextValue] = useState('');
+                const [selectValue, setSelectValue] = useState('lucy');
+                const [switchChecked, setSwitchChecked] = useState(false);
+                const [sliderValue, setSliderValue] = useState(50);
+                const [showSpinner, setShowSpinner] = useState(false);
+                const [activeTabKey, setActiveTabKey] = useState('1');
+
+                // --- Event Handlers ---
+                const showMessage = () => {
+                    message.success(`(Offline) Hello AntD v${version}! Date: ${date ? dayjs(date).format('YYYY-MM-DD') : 'None'}. Input: ${textValue}. Selection: ${selectValue}. Switch: ${switchChecked}. Slider: ${sliderValue}`);
+                };
+                const handleDateChange = (value) => setDate(value);
+                const showModal = () => setIsModalVisible(true);
+                const handleOk = () => {
+                    setModalLoading(true);
+                    message.loading('Processing...', 1.5, () => {
+                        setModalLoading(false);
+                        setIsModalVisible(false);
+                        message.success('Operation confirmed!');
+                     });
+                };
+                const handleCancel = () => setIsModalVisible(false);
+                const increaseProgress = useCallback(() => setProgress(p => Math.min(p + 10, 100)), []);
+                const decreaseProgress = useCallback(() => setProgress(p => Math.max(p - 10, 0)), []);
+                const handleInputChange = useCallback((e) => setTextValue(e.target.value), []);
+                const handleSelectChange = useCallback((value) => setSelectValue(value), []);
+                const handleSwitchChange = useCallback((checked) => setSwitchChecked(checked), []);
+                const handleSliderChange = useCallback((value) => setSliderValue(value), []);
+                const toggleSpinner = useCallback(() => {
+                    setShowSpinner(true);
+                    setTimeout(() => { setShowSpinner(false); message.info('Spinner finished'); }, 2000);
+                }, []);
+                const handleTabChange = (key) => setActiveTabKey(key);
+
+                // --- Render Logic (Identical Structure to previous example) ---
+                return (
+                     <StrictMode>
+                        <Tabs defaultActiveKey="1" activeKey={activeTabKey} onChange={handleTabChange}>
+                            <TabPane tab="基础输入与控制 (Basic)" key="1">
+                                <Card title="表单类组件 (Form-like)" bordered={false} className="card-margin">
+                                     <Space direction="vertical" style={{ width: '100%' }} className="component-space">
+                                        {/* ... (Button, DatePicker, Input, Select, Switch, Slider) ... */}
+                                        <Space wrap>
+                                            <Button type="primary" onClick={showMessage}>Show Info (All States)</Button>
+                                            <Tooltip title={`Ant Design Version: ${version}`}><Tag color="blue">AntD v{version}</Tag></Tooltip>
+                                        </Space>
+                                        <DatePicker onChange={handleDateChange} value={date} placeholder="选择日期 (Select Date)"/>
+                                        <Input placeholder="输入文本 (Enter text)" value={textValue} onChange={handleInputChange} style={{ width: 200 }}/>
+                                        <Select value={selectValue} style={{ width: 150 }} onChange={handleSelectChange}>
+                                            <Option value="jack">Jack</Option><Option value="lucy">Lucy</Option><Option value="yiminghe">Yiminghe</Option>
+                                        </Select>
+                                        <Space><Switch checked={switchChecked} onChange={handleSwitchChange} /><span>{switchChecked ? '开' : '关'}</span></Space>
+                                        <Space style={{ width: '80%' }}><span>滑块:</span><Slider value={sliderValue} onChange={handleSliderChange} style={{ flexGrow: 1 }}/><span>{sliderValue}</span></Space>
+                                     </Space>
+                                </Card>
+                            </TabPane>
+                            <TabPane tab="反馈与展示 (Feedback)" key="2">
+                                 <Card title="信息展示与反馈 (Info)" bordered={false} className="card-margin">
+                                    <Space direction="vertical" style={{ width: '100%' }} className="component-space">
+                                        {/* ... (Tags, Progress, Alert, Spin) ... */}
+                                        <Divider orientation="left" plain>标签 (Tags)</Divider>
+                                         <Space wrap>
+                                            <Tag color="processing">Processing</Tag><Tag color="success">Success</Tag><Tag color="error">Error</Tag>
+                                            <Tag color="warning">Warning</Tag><Tag color="magenta">Magenta</Tag><Tag color="#87d068">Custom</Tag>
+                                            <Tooltip title="Tooltip!"><Tag color="purple">Tag Tooltip</Tag></Tooltip>
+                                         </Space>
+                                         <Divider orientation="left" plain>进度条 (Progress)</Divider>
+                                         <Progress percent={progress} status={progress === 100 ? 'success' : 'active'} />
+                                         <Space><Button.Group><Button onClick={decreaseProgress} disabled={progress <= 0}>-</Button><Button onClick={increaseProgress} disabled={progress >= 100}>+</Button></Button.Group></Space>
+                                         <Divider orientation="left" plain>警告提示 (Alert)</Divider>
+                                         <Alert message="Info" type="info" showIcon /><Alert message="Success" type="success" showIcon closable /><Alert message="Warning" description="Desc..." type="warning" showIcon closable /><Alert message="Error" type="error" showIcon />
+                                         <Divider orientation="left" plain>加载中 (Spin)</Divider>
+                                         <Space direction="vertical" style={{width: '100%'}}>
+                                             <Spin spinning={showSpinner}><Alert message="Loading Area" description="Click button below." type="info" /></Spin>
+                                             <Button onClick={toggleSpinner} disabled={showSpinner}>{showSpinner ? 'Loading...' : 'Trigger Spin (2s)'}</Button>
+                                         </Space>
+                                    </Space>
+                                </Card>
+                            </TabPane>
+                            <TabPane tab="交互与对话框 (Interaction)" key="3">
+                                <Card title="模态框与其他 (Modal & Others)" bordered={false} className="card-margin">
+                                    <Space direction="vertical" style={{ width: '100%' }} className="component-space">
+                                        {/* ... (Modal Trigger) ... */}
+                                        <Divider orientation="left" plain>模态框 (Modal Dialog)</Divider>
+                                        <Button type="default" onClick={showModal}>Open Confirmation Dialog</Button>
+                                        <p>Current Tab: {activeTabKey}</p>
+                                    </Space>
+                                </Card>
+                            </TabPane>
+                        </Tabs>
+                        <Modal title="确认对话框 (Confirm)" open={isModalVisible} onOk={handleOk} onCancel={handleCancel} confirmLoading={modalLoading} okText="确认" cancelText="取消">
+                            <p>Example confirmation content.</p><p>Progress: <strong>{progress}%</strong>, Slider: <strong>{sliderValue}</strong></p><p>Proceed?</p>
+                        </Modal>
+                    </StrictMode>
+                );
+            }
+
+            // --- Mount the App ---
+            const container = document.getElementById('root');
+            if (container) {
+                 const root = ReactDOM.createRoot(container);
+                 root.render(<App />);
+                 console.log("Offline Enhanced Ant Design App render initiated.");
+            } else {
+                 console.error("Root element not found!");
+            }
+        }, 100); // Keep a small delay
+    </script>
+</body>
+</html>
