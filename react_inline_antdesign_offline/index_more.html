@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <title>Max Complexity Ant Design CDN Example (Offline)</title>
+    <!-- 1. Local Ant Design CSS -->
+    <link rel="stylesheet" href="libs/reset.css" />
+    <!-- <link rel="stylesheet" href="libs/antd.min.css" /> --> <!-- Use unpkg for latest styles if local is outdated -->
+     <link rel="stylesheet" href="https://unpkg.com/antd/dist/reset.css" />
+     <link rel="stylesheet" href="https://unpkg.com/antd/dist/antd.min.css" />
+    <!-- Local Libs Styling -->
+    <style>
+      body { padding: 20px; background-color: #f0f2f5; }
+      .card-margin { margin-bottom: 16px; }
+      .component-space > * { margin-bottom: 16px !important; }
+      .ant-space-vertical { width: 100%; } /* Ensure vertical space takes width */
+      .preview-area { border: 1px dashed #ccc; padding: 10px; margin-top: 10px; min-height: 50px; }
+    </style>
+</head>
+<body>
+    <div id="root">Loading Max Complexity Ant Design App (Offline)...</div>
+
+    <!-- 2. Local React & ReactDOM -->
+    <script src="libs/react.production.min.js" crossorigin></script>
+    <script src="libs/react-dom.production.min.js" crossorigin></script>
+
+    <!-- 3. Local Day.js and locale -->
+    <script src="libs/dayjs.min.js"></script>
+    <script src="libs/zh-cn.js"></script>
+    <script>dayjs.locale('zh-cn');</script>
+    <!-- 4. Local Ant Design JS -->
+    <!-- <script src="libs/antd.min.js"></script> --> <!-- Use unpkg for latest JS -->
+    <script src="https://unpkg.com/antd/dist/antd.min.js"></script>
+
+    <!-- 5. Local Babel Standalone -->
+    <script src="libs/babel.min.js"></script>
+
+    <!-- 6. Your React App Logic (using Babel) -->
+    <script type="text/babel">
+        // Use setTimeout to ensure local libs are parsed before our code runs
+        setTimeout(() => {
+            console.log("Checking libraries (using unpkg for antd)...");
+            if (!window.React || !window.ReactDOM || !window.antd || !window.dayjs || !window.Babel) {
+                document.getElementById('root').innerHTML = '<p style="color: red;">Error: Failed to load core libraries. Check console and if local files exist (antd loaded from unpkg).</p>';
+                 console.error("Missing Libraries:", {
+                    React: !!window.React, ReactDOM: !!window.ReactDOM, antd: !!window.antd,
+                    dayjs: !!window.dayjs, Babel: !!window.Babel
+                });
+                return;
+            }
+            console.log("Libraries OK.");
+
+            // --- Enhanced React Code ---
+            const { useState, useCallback, useMemo, StrictMode, useEffect } = React;
+            const antd = window.antd;
+            const {
+                // Existing
+                Button, DatePicker, message, version, Card, Tag, Modal, Progress, Space, Divider,
+                Input, Select, Switch, Slider, Alert, Spin, Tooltip, Tabs,
+                // New Components
+                Table, Tree, Form, Transfer, Upload, Cascader, Mentions, Rate, Calendar, Result, Descriptions,
+                Empty, Skeleton, Popconfirm, InputNumber, Radio, Checkbox, TimePicker, Avatar
+            } = antd;
+            const { Option } = Select;
+            const { TabPane } = Tabs;
+            const { TreeNode } = Tree;
+            const { RangePicker } = DatePicker;
+
+            // --- Sample Data ---
+            const tableData = [
+                { key: '1', name: 'John Brown', age: 32, address: 'New York No. 1 Lake Park', tags: ['nice', 'developer'] },
+                { key: '2', name: 'Jim Green', age: 42, address: 'London No. 1 Lake Park', tags: ['loser'] },
+                { key: '3', name: 'Joe Black', age: 32, address: 'Sidney No. 1 Lake Park', tags: ['cool', 'teacher'] },
+            ];
+            const treeData = [
+                { title: 'Parent 1', key: '0-0', children: [
+                    { title: 'Child 1', key: '0-0-0', disabled: true }, { title: 'Child 2', key: '0-0-1' }
+                ]},
+                { title: 'Parent 2', key: '0-1', children: [{ title: 'Child 3', key: '0-1-0' }] },
+            ];
+            const cascaderOptions = [
+              { value: 'zhejiang', label: 'Zhejiang', children: [
+                  { value: 'hangzhou', label: 'Hangzhou', children: [{ value: 'xihu', label: 'West Lake' }] }
+              ]},
+              { value: 'jiangsu', label: 'Jiangsu', children: [
+                  { value: 'nanjing', label: 'Nanjing', children: [{ value: 'zhonghuamen', label: 'Zhong Hua Men' }] }
+              ]},
+            ];
+            const initialTargetKeys = ['1', '3']; // For Transfer
+            const mockTransferData = Array.from({ length: 10 }).map((_, i) => ({
+              key: i.toString(), title: `content${i + 1}`, description: `description of content${i + 1}`,
+            }));
+
+
+            function ComplexApp() {
+                // --- State Hooks (More states) ---
+                const [date, setDate] = useState(null);
+                const [isModalVisible, setIsModalVisible] = useState(false);
+                const [progress, setProgress] = useState(30);
+                const [modalLoading, setModalLoading] = useState(false);
+                const [textValue, setTextValue] = useState('');
+                const [selectValue, setSelectValue] = useState('lucy');
+                const [switchChecked, setSwitchChecked] = useState(false);
+                const [sliderValue, setSliderValue] = useState(50);
+                const [showSpinner, setShowSpinner] = useState(false);
+                const [activeTabKey, setActiveTabKey] = useState('1');
+                const [form] = Form.useForm(); // Form instance
+                const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+                const [selectedTreeKeys, setSelectedTreeKeys] = useState([]);
+                const [expandedTreeKeys, setExpandedTreeKeys] = useState(['0-0']);
+                const [mentionValue, setMentionValue] = useState('');
+                const [rateValue, setRateValue] = useState(3);
+                const [calendarValue, setCalendarValue] = useState(() => dayjs());
+                const [transferTargetKeys, setTransferTargetKeys] = useState(initialTargetKeys);
+                const [showResult, setShowResult] = useState(false);
+                const [uploadFileList, setUploadFileList] = useState([]);
+                const [loadingData, setLoadingData] = useState(true); // Skeleton loader state
+                const [cascaderValue, setCascaderValue] = useState([]);
+                const [timeValue, setTimeValue] = useState(null);
+                const [rangeDateValue, setRangeDateValue] = useState(null);
+                const [radioValue, setRadioValue] = useState(1);
+                const [checkedList, setCheckedList] = useState(['Apple']);
+                const [inputNumberValue, setInputNumberValue] = useState(3);
+
+
+                // --- Effects ---
+                useEffect(() => {
+                    // Simulate loading data for Skeleton
+                    const timer = setTimeout(() => {
+                        setLoadingData(false);
+                    }, 1500);
+                    return () => clearTimeout(timer);
+                }, []);
+
+                // --- Event Handlers (More handlers) ---
+                const showMessage = () => {
+                    message.success(`(Offline Max) Hello AntD v${version}! Date: ${date ? dayjs(date).format('YYYY-MM-DD') : 'None'}. Input: ${textValue}. Selection: ${selectValue}. Switch: ${switchChecked}. Slider: ${sliderValue}`);
+                };
+                const handleDateChange = (value) => setDate(value);
+                const showModal = () => setIsModalVisible(true);
+                const handleOk = () => {
+                    setModalLoading(true);
+                    message.loading('Processing...', 1.5, () => {
+                        setModalLoading(false);
+                        setIsModalVisible(false);
+                        message.success('Operation confirmed!');
+                     });
+                };
+                const handleCancel = () => setIsModalVisible(false);
+                const increaseProgress = useCallback(() => setProgress(p => Math.min(p + 10, 100)), []);
+                const decreaseProgress = useCallback(() => setProgress(p => Math.max(p - 10, 0)), []);
+                const handleInputChange = useCallback((e) => setTextValue(e.target.value), []);
+                const handleSelectChange = useCallback((value) => setSelectValue(value), []);
+                const handleSwitchChange = useCallback((checked) => setSwitchChecked(checked), []);
+                const handleSliderChange = useCallback((value) => setSliderValue(value), []);
+                const toggleSpinner = useCallback(() => {
+                    setShowSpinner(true);
+                    setTimeout(() => { setShowSpinner(false); message.info('Spinner finished'); }, 2000);
+                }, []);
+                const handleTabChange = (key) => setActiveTabKey(key);
+                const onSelectChange = keys => setSelectedRowKeys(keys);
+                const onTreeSelect = (keys, info) => { console.log('Tree Select:', keys, info); setSelectedTreeKeys(keys); };
+                const onTreeExpand = (keys) => setExpandedTreeKeys(keys);
+                const onMentionSelect = (option) => console.log('Mention Selected:', option.value);
+                const handleRateChange = value => setRateValue(value);
+                const onCalendarPanelChange = (value, mode) => console.log('Calendar Panel Change:', value, mode);
+                const onCalendarSelect = (value) => { console.log('Calendar Select:', value); setCalendarValue(value); };
+                const handleTransferChange = (nextTargetKeys, direction, moveKeys) => { console.log('Transfer:', nextTargetKeys, direction, moveKeys); setTransferTargetKeys(nextTargetKeys); };
+                const handleFormSubmit = (values) => {
+                    console.log('Form Success:', values);
+                    message.success('Form submitted successfully!');
+                    setShowResult(true); // Show Result component after submit
+                    setTimeout(() => setShowResult(false), 3000); // Hide after 3s
+                };
+                const handleFormFail = (errorInfo) => {
+                     console.log('Form Failed:', errorInfo);
+                     message.error('Form submission failed!');
+                 };
+                const handleUploadChange = ({ file, fileList }) => {
+                    console.log("Upload:", file.status, file);
+                    let newFileList = [...fileList];
+
+                    // Simulate upload progress/result
+                    if (file.status === 'uploading') {
+                        // Simulate progress (optional, needs more state)
+                    } else if (file.status === 'done') {
+                        message.success(`${file.name} file uploaded successfully (simulated).`);
+                    } else if (file.status === 'error') {
+                        message.error(`${file.name} file upload failed (simulated).`);
+                    } else if (file.status === 'removed') {
+                        message.info(`${file.name} file removed.`);
+                    }
+
+                    // Update file list (important: manage UID and status)
+                    newFileList = newFileList.map(f => {
+                        if (f.uid === file.uid) {
+                             // You might update response or url here upon 'done' if simulating server response
+                             if (f.status === 'uploading' && file.status !== 'removed') {
+                                 // Simulate done after a delay
+                                 setTimeout(() => {
+                                    const updatedFile = { ...f, status: 'done', url: '#simulated-url' };
+                                    // Update the state immutably
+                                    setUploadFileList(prevList => prevList.map(item => item.uid === updatedFile.uid ? updatedFile : item));
+                                 }, 1000);
+                                 return { ...f, status: 'uploading' }; // Keep uploading status for now
+                             }
+                             return { ...f, status: file.status }; // Use the latest status from the event
+                        }
+                        return f;
+                    });
+
+                    // For newly added files that start immediately
+                     if (file.status !== 'uploading' && file.status !== 'removed' && !newFileList.find(f => f.uid === file.uid)) {
+                         // This case might not happen often with default behavior but good to handle
+                         newFileList.push({ ...file });
+                     }
+
+                     // Filter out removed files
+                     newFileList = newFileList.filter(f => f.status !== 'removed');
+
+
+                    setUploadFileList(newFileList);
+                };
+                const handleUploadRemove = (file) => {
+                    // Return true to remove, false to cancel. Can add Popconfirm here.
+                    console.log("Request remove:", file);
+                    return true;
+                };
+                const beforeUpload = (file) => {
+                    // Can perform checks here, e.g., file type/size
+                    const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png';
+                    if (!isJpgOrPng) { message.error('You can only upload JPG/PNG file!'); }
+                    const isLt2M = file.size / 1024 / 1024 < 2;
+                    if (!isLt2M) { message.error('Image must smaller than 2MB!'); }
+                    // Return false or Promise.reject() to stop upload
+                    // In this simulation, we'll proceed but mark it as 'uploading'
+                    // The handleUploadChange will then simulate 'done' or 'error'
+                    return isJpgOrPng && isLt2M; // Only return true if valid, letting default behavior start 'uploading' status
+                };
+                 const handleCascaderChange = (value) => setCascaderValue(value);
+                 const handleTimeChange = (time, timeString) => { console.log(time, timeString); setTimeValue(time); };
+                 const handleRangeDateChange = (dates, dateStrings) => setRangeDateValue(dates);
+                 const handleRadioChange = (e) => setRadioValue(e.target.value);
+                 const handleCheckboxChange = (list) => setCheckedList(list);
+                 const handleInputNumberChange = (value) => setInputNumberValue(value);
+
+
+                // --- Memoized Values ---
+                const selectedTableData = useMemo(() => tableData.find(item => item.key === selectedRowKeys[0]), [selectedRowKeys]);
+                const tableColumns = useMemo(() => [
+                    { title: 'Name', dataIndex: 'name', key: 'name', sorter: (a, b) => a.name.localeCompare(b.name) },
+                    { title: 'Age', dataIndex: 'age', key: 'age', sorter: (a, b) => a.age - b.age },
+                    { title: 'Address', dataIndex: 'address', key: 'address' },
+                    { title: 'Tags', key: 'tags', dataIndex: 'tags', render: tags => (<>{tags.map(tag => <Tag color="blue" key={tag}>{tag}</Tag>)}</>) },
+                    { title: 'Action', key: 'action', render: (_, record) => (
+                        <Space size="middle"><a>Invite {record.name}</a><a>Delete</a></Space>
+                    )},
+                ], []);
+                const checkboxOptions = ['Apple', 'Pear', 'Orange'];
+
+
+                // --- Render Logic ---
+                return (
+                    <StrictMode>
+                        <h1>Ant Design Max Complexity Demo (v{version})</h1>
+                        <Tabs defaultActiveKey="1" activeKey={activeTabKey} onChange={handleTabChange}>
+                            {/* Tab 1: Basic Controls */}
+                            <TabPane tab="基础输入 (Basic)" key="1">
+                                <Card title="常用输入控件" bordered={false} className="card-margin">
+                                    <Space direction="vertical" className="component-space">
+                                        <Space wrap>
+                                            <Button type="primary" onClick={showMessage}>Show Info (Base States)</Button>
+                                            <Tooltip title={`Ant Design Version: ${version}`}><Tag color="blue">AntD v{version}</Tag></Tooltip>
+                                        </Space>
+                                        <Divider orientation="left" plain>日期时间</Divider>
+                                        <Space wrap>
+                                             <DatePicker onChange={handleDateChange} value={date} placeholder="选择日期"/>
+                                             <RangePicker value={rangeDateValue} onChange={handleRangeDateChange} />
+                                             <TimePicker value={timeValue} onChange={handleTimeChange} placeholder="选择时间"/>
+                                        </Space>
+                                         <Divider orientation="left" plain>文本与选择</Divider>
+                                         <Space wrap>
+                                            <Input placeholder="输入文本" value={textValue} onChange={handleInputChange} style={{ width: 200 }} allowClear />
+                                            <Select value={selectValue} style={{ width: 150 }} onChange={handleSelectChange}>
+                                                <Option value="jack">Jack</Option><Option value="lucy">Lucy</Option><Option value="yiminghe">Yiminghe</Option>
+                                            </Select>
+                                            <Cascader options={cascaderOptions} value={cascaderValue} onChange={handleCascaderChange} placeholder="选择地区" style={{ width: 150 }} />
+                                        </Space>
+                                        <Divider orientation="left" plain>开关与滑块</Divider>
+                                        <Space wrap>
+                                            <Space><Switch checked={switchChecked} onChange={handleSwitchChange} /><span>{switchChecked ? '开' : '关'}</span></Space>
+                                            <Space style={{ width: 300 }}><span>滑块:</span><Slider value={sliderValue} onChange={handleSliderChange} style={{ flexGrow: 1 }}/><span>{sliderValue}</span></Space>
+                                            <Space><span>评分:</span><Rate value={rateValue} onChange={handleRateChange} /></Space>
+                                            <Space><span>数字:</span><InputNumber min={1} max={10} value={inputNumberValue} onChange={handleInputNumberChange} /></Space>
+                                        </Space>
+                                        <Divider orientation="left" plain>单选与多选</Divider>
+                                        <Space wrap>
+                                             <Radio.Group onChange={handleRadioChange} value={radioValue}>
+                                                 <Radio value={1}>A</Radio><Radio value={2}>B</Radio><Radio value={3}>C</Radio><Radio value={4}>D</Radio>
+                                             </Radio.Group>
+                                             <Checkbox.Group options={checkboxOptions} value={checkedList} onChange={handleCheckboxChange} />
+                                        </Space>
+                                         <Divider orientation="left" plain>提及 (@)</Divider>
+                                         <Mentions style={{ width: '100%' }} placeholder="Use @ to mention someone" defaultValue="@afc163" value={mentionValue} onChange={setMentionValue} onSelect={onMentionSelect} options={[ { value: 'afc163', label: 'afc163' }, { value: 'zombieJ', label: 'zombieJ' }, { value: 'yesmeck', label: 'yesmeck' } ]} />
+                                    </Space>
+                                </Card>
+                            </TabPane>
+
+                            {/* Tab 2: Feedback */}
+                            <TabPane tab="反馈 (Feedback)" key="2">
+                                <Card title="信息展示与反馈" bordered={false} className="card-margin">
+                                     <Space direction="vertical" className="component-space">
+                                        <Divider orientation="left" plain>标签 (Tags)</Divider>
+                                        <Space wrap>
+                                            <Tag color="processing">Processing</Tag><Tag color="success">Success</Tag><Tag color="error">Error</Tag>
+                                            <Tag color="warning">Warning</Tag><Tag color="magenta">Magenta</Tag><Tag color="#87d068">Custom</Tag>
+                                            <Tooltip title="Tooltip!"><Tag color="purple">Tag Tooltip</Tag></Tooltip>
+                                            <Avatar style={{ backgroundColor: '#f56a00' }}>K</Avatar>
+                                            <Avatar style={{ backgroundColor: '#87d068' }} >U</Avatar> {/* Icon component needed for <UserOutlined/> */}
+                                        </Space>
+                                        <Divider orientation="left" plain>进度条 (Progress)</Divider>
+                                        <Progress percent={progress} status={progress === 100 ? 'success' : 'active'} />
+                                        <Space><Button.Group><Button onClick={decreaseProgress} disabled={progress <= 0}>-</Button><Button onClick={increaseProgress} disabled={progress >= 100}>+</Button></Button.Group></Space>
+                                        <Divider orientation="left" plain>警告提示 (Alert)</Divider>
+                                        <Alert message="Info" type="info" showIcon /><Alert message="Success" type="success" showIcon closable /><Alert message="Warning" description="Detailed description goes here..." type="warning" showIcon closable /><Alert message="Error" type="error" showIcon />
+                                        <Divider orientation="left" plain>加载中 (Spin & Skeleton)</Divider>
+                                        <Space direction="vertical" style={{width: '100%'}}>
+                                            <Spin spinning={showSpinner} tip="Loading...">
+                                                <Alert message="Content Area" description="Click button below to trigger spin overlay." type="info" style={{marginBottom: 10}}/>
+                                             </Spin>
+                                            <Button onClick={toggleSpinner} disabled={showSpinner}>{showSpinner ? 'Loading...' : 'Trigger Spin (2s)'}</Button>
+                                            <Divider orientation="left" plain>骨架屏 (Skeleton)</Divider>
+                                            <Skeleton loading={loadingData} active avatar paragraph={{ rows: 4 }}>
+                                                 {/* Content to show after loading */}
+                                                <Descriptions title="User Info">
+                                                     <Descriptions.Item label="UserName">Zhou Maomao</Descriptions.Item>
+                                                     <Descriptions.Item label="Telephone">1810000000</Descriptions.Item>
+                                                     <Descriptions.Item label="Live">Hangzhou, Zhejiang</Descriptions.Item>
+                                                     <Descriptions.Item label="Remark">Empty</Descriptions.Item>
+                                                     <Descriptions.Item label="Address">No. 18, Wantang Road, Xihu District, Hangzhou, Zhejiang, China</Descriptions.Item>
+                                                 </Descriptions>
+                                            </Skeleton>
+                                             <Button onClick={() => setLoadingData(true)} disabled={loadingData}>Reload Skeleton (Simulate)</Button>
+                                        </Space>
+                                    </Space>
+                                </Card>
+                            </TabPane>
+
+                            {/* Tab 3: Data Display */}
+                            <TabPane tab="数据显示 (Data Display)" key="3">
+                                 <Card title="表格 (Table)" bordered={false} className="card-margin">
+                                    <Skeleton loading={loadingData} active>
+                                        <Table
+                                            rowSelection={{ selectedRowKeys, onChange: onSelectChange }}
+                                            columns={tableColumns}
+                                            dataSource={tableData}
+                                            pagination={{ pageSize: 5 }}
+                                        />
+                                         <div className="preview-area">
+                                             {selectedTableData ? (
+                                                 <Descriptions title="Selected Row Detail" size="small" bordered>
+                                                     <Descriptions.Item label="Name">{selectedTableData.name}</Descriptions.Item>
+                                                     <Descriptions.Item label="Age">{selectedTableData.age}</Descriptions.Item>
+                                                     <Descriptions.Item label="Address">{selectedTableData.address}</Descriptions.Item>
+                                                 </Descriptions>
+                                             ) : (<Empty description="Select a row to see details" image={Empty.PRESENTED_IMAGE_SIMPLE}/>)}
+                                         </div>
+                                    </Skeleton>
+                                </Card>
+                                <Card title="树形控件 (Tree)" bordered={false} className="card-margin">
+                                    <Skeleton loading={loadingData} active>
+                                        <Tree
+                                            checkable
+                                            onSelect={onTreeSelect}
+                                            onExpand={onTreeExpand}
+                                            expandedKeys={expandedTreeKeys}
+                                            selectedKeys={selectedTreeKeys}
+                                            autoExpandParent={true}
+                                            treeData={treeData}
+                                            style={{ border: '1px solid #f0f0f0', padding: '10px', borderRadius: '4px' }}
+                                        />
+                                         <div className="preview-area">
+                                            Selected Tree Keys: {selectedTreeKeys.length > 0 ? selectedTreeKeys.join(', ') : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No keys selected"/>}
+                                        </div>
+                                    </Skeleton>
+                                </Card>
+                                <Card title="日历 (Calendar)" bordered={false} className="card-margin">
+                                     <Skeleton loading={loadingData} active>
+                                        <Calendar value={calendarValue} onSelect={onCalendarSelect} onPanelChange={onCalendarPanelChange} />
+                                     </Skeleton>
+                                </Card>
+                            </TabPane>
+
+                            {/* Tab 4: Form & Upload */}
+                             <TabPane tab="表单与上传 (Form/Upload)" key="4">
+                                <Card title="复杂表单 (Complex Form)" bordered={false} className="card-margin">
+                                     <Form
+                                         form={form}
+                                         layout="vertical"
+                                         onFinish={handleFormSubmit}
+                                         onFinishFailed={handleFormFail}
+                                         initialValues={{ remember: true, username: 'Default User' }}
+                                     >
+                                         <Form.Item label="Username" name="username" rules={[{ required: true, message: 'Please input your username!' }]}>
+                                             <Input />
+                                         </Form.Item>
+                                          <Form.Item label="Password" name="password" rules={[{ required: true, message: 'Please input your password!' }]}>
+                                             <Input.Password />
+                                         </Form.Item>
+                                         <Form.Item label="Description" name="description">
+                                             <Input.TextArea rows={3}/>
+                                         </Form.Item>
+                                         <Form.Item label="Confirm Age" name="age" rules={[{ type: 'number', min: 18, message: 'Must be 18 or older' }]}>
+                                            <InputNumber style={{ width: '100%' }}/>
+                                         </Form.Item>
+                                         <Form.Item name="remember" valuePropName="checked">
+                                            <Checkbox>Remember me</Checkbox>
+                                         </Form.Item>
+                                         <Form.Item>
+                                            <Space>
+                                                <Button type="primary" htmlType="submit">Submit</Button>
+                                                <Button htmlType="button" onClick={() => form.resetFields()}>Reset</Button>
+                                            </Space>
+                                         </Form.Item>
+                                     </Form>
+                                      {showResult && (
+                                          <Result status="success" title="Successfully Submitted!" subTitle="Form data processed (simulated)." />
+                                      )}
+                                </Card>
+                                <Card title="穿梭框 (Transfer)" bordered={false} className="card-margin">
+                                    <Transfer
+                                        dataSource={mockTransferData}
+                                        titles={['Source', 'Target']}
+                                        targetKeys={transferTargetKeys}
+                                        onChange={handleTransferChange}
+                                        render={item => item.title}
+                                        listStyle={{ width: 250, height: 300 }}
+                                        />
+                                </Card>
+                                <Card title="上传 (Upload - Simulated)" bordered={false} className="card-margin">
+                                     <Upload
+                                        action="https://www.mocky.io/v2/5cc8019d300000980a055e76" // Mock API endpoint (will likely fail CORS in local file, simulation handles it)
+                                        listType="picture-card"
+                                        fileList={uploadFileList}
+                                        onChange={handleUploadChange}
+                                        onRemove={handleUploadRemove}
+                                        beforeUpload={beforeUpload}
+                                     >
+                                        {/* Need Icon component for '+' */}
+                                        {uploadFileList.length >= 8 ? null : <div>{/* <PlusOutlined /> */} + <div style={{ marginTop: 8 }}>Upload</div></div>}
+                                    </Upload>
+                                    <Alert message="Upload is simulated. It shows UI states but doesn't actually upload files without a server and proper configuration." type="warning" style={{marginTop: 10}}/>
+                                </Card>
+                            </TabPane>
+
+                             {/* Tab 5: Interaction */}
+                            <TabPane tab="交互 (Interaction)" key="5">
+                                 <Card title="模态框与其他交互" bordered={false} className="card-margin">
+                                     <Space direction="vertical" className="component-space">
+                                        <Divider orientation="left" plain>模态框 (Modal Dialog)</Divider>
+                                        <Button type="default" onClick={showModal}>Open Confirmation Dialog</Button>
+                                        <Divider orientation="left" plain>气泡确认框 (Popconfirm)</Divider>
+                                        <Popconfirm title="Are you sure to delete this task?" onConfirm={() => message.success('Task Deleted (Simulated)')} okText="Yes" cancelText="No">
+                                          <Button danger>Delete Task</Button>
+                                        </Popconfirm>
+                                        <Divider orientation="left" plain>当前状态预览</Divider>
+                                        <Descriptions bordered size="small">
+                                            <Descriptions.Item label="Current Tab">{activeTabKey}</Descriptions.Item>
+                                            <Descriptions.Item label="Selected Table Rows">{selectedRowKeys.length}</Descriptions.Item>
+                                            <Descriptions.Item label="Slider Value">{sliderValue}</Descriptions.Item>
+                                             <Descriptions.Item label="Rate Value">{rateValue}</Descriptions.Item>
+                                             <Descriptions.Item label="Switch">{switchChecked ? 'On' : 'Off'}</Descriptions.Item>
+                                        </Descriptions>
+                                    </Space>
+                                </Card>
+                            </TabPane>
+
+                        </Tabs>
+
+                        {/* --- Shared Modal --- */}
+                        <Modal title="确认对话框 (Confirm)" open={isModalVisible} onOk={handleOk} onCancel={handleCancel} confirmLoading={modalLoading} okText="确认" cancelText="取消">
+                           <p>This modal can show combined state:</p>
+                           <Descriptions bordered size="small">
+                                <Descriptions.Item label="Progress">{progress}%</Descriptions.Item>
+                                <Descriptions.Item label="Slider">{sliderValue}</Descriptions.Item>
+                                <Descriptions.Item label="Text Value">{textValue || '(empty)'}</Descriptions.Item>
+                                <Descriptions.Item label="Selected Table Row Key">{selectedRowKeys[0] || 'None'}</Descriptions.Item>
+                            </Descriptions>
+                           <p style={{marginTop: 10}}>Proceed with simulated action?</p>
+                        </Modal>
+                    </StrictMode>
+                );
+            }
+
+            // --- Mount the App ---
+            const container = document.getElementById('root');
+            if (container) {
+                 // Use createRoot for React 18+
+                 const root = ReactDOM.createRoot(container);
+                 root.render(<ComplexApp />);
+                 console.log("Max Complexity Ant Design App render initiated.");
+            } else {
+                 console.error("Root element not found!");
+            }
+        }, 150); // Slightly increased delay for potentially larger lib parsing
+    </script>
+</body>
+</html> 
