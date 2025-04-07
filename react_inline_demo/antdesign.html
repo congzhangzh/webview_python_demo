@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <title>Enhanced Ant Design CDN Example</title>
+    <!-- 1. Ant Design CSS (Using specific v5 version for stability) -->
+    <link rel="stylesheet" href="https://unpkg.com/antd@5.12.8/dist/reset.css" />
+    <link rel="stylesheet" href="https://unpkg.com/antd@5.12.8/dist/antd.min.css" />
+    <!-- 2. React & ReactDOM -->
+    <script src="https://unpkg.com/react@18.2.0/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.development.js" crossorigin></script>
+    <!-- 3. Day.js (for DatePicker) and locale -->
+    <script src="https://unpkg.com/dayjs@1.11.10/dayjs.min.js"></script>
+    <script src="https://unpkg.com/dayjs@1.11.10/locale/zh-cn.js"></script>
+    <script>dayjs.locale('zh-cn');</script>
+    <!-- 4. Ant Design JS (UMD - Matching CSS version) -->
+    <script src="https://unpkg.com/antd@5.12.8/dist/antd.min.js"></script>
+    <!-- 5. Babel Standalone (for YOUR JSX) -->
+    <script src="https://unpkg.com/@babel/standalone@7.23.0/babel.min.js"></script>
+    <style>
+      body { padding: 20px; background-color: #f0f2f5; }
+      .card-margin { margin-bottom: 16px; }
+      .component-space > * { margin-bottom: 16px !important; } /* Add space between vertical items */
+    </style>
+</head>
+<body>
+    <div id="root">Loading Enhanced Ant Design App...</div>
+    <script type="text/babel">
+        // Use setTimeout to ensure antd is loaded before our code runs
+        setTimeout(() => {
+            console.log("Checking libraries...");
+            if (!window.React || !window.ReactDOM || !window.antd || !window.dayjs) {
+                document.getElementById('root').innerHTML = '<p style="color: red;">Error: Failed to load core libraries (React, ReactDOM, Ant Design, or Dayjs). Check console.</p>';
+                return;
+            }
+            console.log("Libraries OK.");
+
+            // Destructure React hooks and Ant Design components AFTER checks
+            const { useState, useCallback, StrictMode } = React; // Added StrictMode
+            const antd = window.antd;
+            const {
+                Button, DatePicker, message, version, Card, Tag, Modal, Progress, Space, Divider,
+                Input, Select, Switch, Slider, Alert, Spin, Tooltip, Tabs // Added new components
+             } = antd;
+            const { Option } = Select; // Option for Select
+            const { TabPane } = Tabs; // TabPane for Tabs
+
+            function App() {
+                // --- Original State Hooks ---
+                const [date, setDate] = useState(null);
+                const [isModalVisible, setIsModalVisible] = useState(false);
+                const [progress, setProgress] = useState(30);
+                const [modalLoading, setModalLoading] = useState(false);
+
+                // --- New State Hooks ---
+                const [textValue, setTextValue] = useState('');
+                const [selectValue, setSelectValue] = useState('lucy');
+                const [switchChecked, setSwitchChecked] = useState(false);
+                const [sliderValue, setSliderValue] = useState(50);
+                const [showSpinner, setShowSpinner] = useState(false);
+                const [activeTabKey, setActiveTabKey] = useState('1');
+
+                // --- Original Event Handlers ---
+                const showMessage = () => {
+                    message.success(`Hello from Ant Design v${version}! Date: ${date ? dayjs(date).format('YYYY-MM-DD') : 'None'}. Input: ${textValue}. Selection: ${selectValue}. Switch: ${switchChecked}. Slider: ${sliderValue}`);
+                };
+                const handleDateChange = (value) => {
+                     console.log('Selected Date:', value ? dayjs(value).format('YYYY-MM-DD') : null);
+                     setDate(value);
+                }
+                const showModal = () => {
+                    setIsModalVisible(true);
+                };
+                const handleOk = () => {
+                    setModalLoading(true); // Simulate async operation
+                    message.loading('Processing...', 1.5, () => { // Show loading message
+                        console.log('Modal OK clicked');
+                        setModalLoading(false);
+                        setIsModalVisible(false);
+                        message.success('Operation confirmed!');
+                     });
+                };
+                const handleCancel = () => {
+                    console.log('Modal Cancel clicked');
+                    setIsModalVisible(false);
+                };
+                const increaseProgress = useCallback(() => {
+                    setProgress(prevPercent => Math.min(prevPercent + 10, 100));
+                }, []);
+                const decreaseProgress = useCallback(() => {
+                    setProgress(prevPercent => Math.max(prevPercent - 10, 0));
+                }, []);
+
+                // --- New Event Handlers ---
+                const handleInputChange = useCallback((e) => {
+                    setTextValue(e.target.value);
+                }, []);
+                const handleSelectChange = useCallback((value) => {
+                    console.log(`selected ${value}`);
+                    setSelectValue(value);
+                }, []);
+                 const handleSwitchChange = useCallback((checked) => {
+                    console.log(`switch to ${checked}`);
+                    setSwitchChecked(checked);
+                }, []);
+                const handleSliderChange = useCallback((value) => {
+                    setSliderValue(value);
+                }, []);
+                const toggleSpinner = useCallback(() => {
+                    setShowSpinner(true);
+                    console.log('Spinner activated');
+                    setTimeout(() => {
+                         setShowSpinner(false);
+                         console.log('Spinner deactivated');
+                         message.info('Spinner finished');
+                    }, 2000); // Simulate loading time
+                }, []);
+                 const handleTabChange = (key) => {
+                    console.log('Tab changed to:', key);
+                    setActiveTabKey(key);
+                };
+
+                // --- Render Logic ---
+                return (
+                    <StrictMode> {/* Added StrictMode for checks */}
+                        <Tabs defaultActiveKey="1" activeKey={activeTabKey} onChange={handleTabChange}>
+                            <TabPane tab="基础输入与控制 (Basic Input & Control)" key="1">
+                                <Card title="表单类组件 (Form-like Components)" bordered={false} className="card-margin">
+                                     <Space direction="vertical" style={{ width: '100%' }} className="component-space">
+                                        <Space wrap>
+                                            <Button type="primary" onClick={showMessage}>
+                                                Show Info Message (All States)
+                                            </Button>
+                                            <Tooltip title={`Ant Design Version: ${version}`}>
+                                                <Tag color="blue">AntD v{version}</Tag>
+                                            </Tooltip>
+                                        </Space>
+                                        <DatePicker onChange={handleDateChange} value={date} placeholder="选择日期 (Select Date)"/>
+                                        <Input placeholder="输入文本 (Enter text)" value={textValue} onChange={handleInputChange} style={{ width: 200 }}/>
+                                        <Select value={selectValue} style={{ width: 150 }} onChange={handleSelectChange}>
+                                            <Option value="jack">Jack</Option>
+                                            <Option value="lucy">Lucy</Option>
+                                            <Option value="yiminghe">Yiminghe</Option>
+                                        </Select>
+                                        <Space>
+                                            <Switch checked={switchChecked} onChange={handleSwitchChange} />
+                                            <span>{switchChecked ? '开启 (On)' : '关闭 (Off)'}</span>
+                                        </Space>
+                                        <Space style={{ width: '80%' }}>
+                                            <span>滑块 (Slider):</span>
+                                            <Slider value={sliderValue} onChange={handleSliderChange} style={{ flexGrow: 1 }}/>
+                                            <span>{sliderValue}</span>
+                                        </Space>
+                                     </Space>
+                                </Card>
+                            </TabPane>
+
+                            <TabPane tab="反馈与展示 (Feedback & Display)" key="2">
+                                 <Card title="信息展示与反馈 (Info Display & Feedback)" bordered={false} className="card-margin">
+                                    <Space direction="vertical" style={{ width: '100%' }} className="component-space">
+                                         {/* Tags Section */}
+                                         <Divider orientation="left" plain>标签 (Tags)</Divider>
+                                         <Space wrap>
+                                            <Tag color="processing">Processing</Tag>
+                                            <Tag color="success">Success</Tag>
+                                            <Tag color="error">Error</Tag>
+                                            <Tag color="warning">Warning</Tag>
+                                            <Tag color="magenta">Magenta Tag</Tag>
+                                            <Tag color="#87d068">Custom Color</Tag>
+                                            <Tooltip title="This is a tooltip example">
+                                                <Tag color="purple">Tag with Tooltip</Tag>
+                                            </Tooltip>
+                                         </Space>
+
+                                         {/* Progress Bar Section */}
+                                         <Divider orientation="left" plain>进度条 (Progress)</Divider>
+                                         <Progress percent={progress} status={progress === 100 ? 'success' : 'active'} />
+                                         <Space>
+                                            <Button.Group>
+                                                <Button onClick={decreaseProgress} disabled={progress <= 0}>Decrease (-)</Button>
+                                                <Button onClick={increaseProgress} disabled={progress >= 100}>Increase (+)</Button>
+                                            </Button.Group>
+                                         </Space>
+
+                                         {/* Alert Section */}
+                                         <Divider orientation="left" plain>警告提示 (Alert)</Divider>
+                                         <Alert message="信息提示 (Informational)" type="info" showIcon />
+                                         <Alert message="成功提示 (Success)" type="success" showIcon closable />
+                                         <Alert message="警告提示 (Warning)" description="这里可以添加详细描述。" type="warning" showIcon closable />
+                                         <Alert message="错误提示 (Error)" type="error" showIcon />
+
+                                         {/* Spin Section */}
+                                         <Divider orientation="left" plain>加载中 (Spin)</Divider>
+                                         <Space direction="vertical" style={{width: '100%'}}>
+                                             <Spin spinning={showSpinner}>
+                                                 <Alert
+                                                     message="加载区域 (Loading Area)"
+                                                     description="点击下方按钮模拟加载过程。"
+                                                     type="info"
+                                                  />
+                                             </Spin>
+                                             <Button onClick={toggleSpinner} disabled={showSpinner}>
+                                                {showSpinner ? 'Loading...' : 'Trigger Spin for 2s'}
+                                            </Button>
+                                         </Space>
+                                    </Space>
+                                </Card>
+                            </TabPane>
+
+                            <TabPane tab="交互与对话框 (Interaction & Dialogs)" key="3">
+                                <Card title="模态框与其他交互 (Modal & Others)" bordered={false} className="card-margin">
+                                    <Space direction="vertical" style={{ width: '100%' }} className="component-space">
+                                        {/* Modal Trigger Section */}
+                                        <Divider orientation="left" plain>模态框 (Modal Dialog)</Divider>
+                                        <Button type="default" onClick={showModal}>
+                                           打开确认对话框 (Open Confirmation Dialog)
+                                        </Button>
+                                        <p>当前 Tab: {activeTabKey}</p>
+                                    </Space>
+                                </Card>
+                            </TabPane>
+                        </Tabs>
+
+                        {/* Modal Definition (Keep outside Tabs for global access) */}
+                        <Modal
+                            title="确认对话框 (Confirmation Dialog)"
+                            open={isModalVisible}
+                            onOk={handleOk}
+                            onCancel={handleCancel}
+                            confirmLoading={modalLoading} // Show loading state on OK button
+                            okText="确认 (Confirm)"
+                            cancelText="取消 (Cancel)"
+                        >
+                            <p>这是一个示例确认对话框。</p>
+                            <p>当前进度: <strong>{progress}%</strong>, 滑块值: <strong>{sliderValue}</strong></p>
+                            <p>你确定要执行模拟操作吗?</p>
+                        </Modal>
+                    </StrictMode>
+                );
+            }
+
+            // --- Mount the App ---
+            const container = document.getElementById('root');
+            if (container) {
+                 const root = ReactDOM.createRoot(container);
+                 root.render(<App />);
+                 console.log("Enhanced Ant Design App render initiated.");
+            } else {
+                 console.error("Root element not found!");
+            }
+        }, 150); // Slightly increased delay just in case
+    </script>
+</body>
+</html>
