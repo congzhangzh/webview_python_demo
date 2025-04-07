@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <title>Preact + HTM CDN 示例</title>
+    <script src="https://unpkg.com/preact@10.19.6/dist/preact.umd.js"></script>
+    <script src="https://unpkg.com/preact@10.19.6/hooks/dist/hooks.umd.js"></script>
+    <script src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js"></script>
+</head>
+<body>
+    <div id="app"></div>
+    <script>
+        const { h, render } = preact;
+        const { useState } = preactHooks;
+        const html = htm.bind(h);
+
+        function Counter() {
+            const [count, setCount] = useState(0);
+            return html`
+                <div>
+                    <h1>Count: ${count}</h1>
+                    <button onClick=${() => setCount(count + 1)}>
+                        Increment
+                    </button>
+                    <p>这是通过 CDN 运行的 Preact + HTM.</p>
+                </div>
+            `;
+        }
+        const container = document.getElementById('app');
+        render(html`<${Counter} />`, container);
+    </script>
+</body>
+</html>
