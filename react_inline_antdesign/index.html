@@ -5,7 +5,7 @@
     <title>Enhanced Ant Design CDN Example (Offline)</title>
     <!-- 1. Local Ant Design CSS -->
     <link rel="stylesheet" href="libs/reset.css" />
-    <link rel="stylesheet" href="libs/antd.min.css" />
+    <!-- <link rel="stylesheet" href="libs/antd.min.css" /> -->
     <!-- Local Libs Styling (if needed) -->
     <style>
       body { padding: 20px; background-color: #f0f2f5; }
@@ -17,8 +17,13 @@
     <div id="root">Loading Enhanced Ant Design App (Offline)...</div>
 
     <!-- 2. Local React & ReactDOM -->
-    <script src="libs/react.development.js" crossorigin></script>
-    <script src="libs/react-dom.development.js" crossorigin></script>
+    <!-- 
+        <script src="libs/react.development.js" crossorigin></script>
+        <script src="libs/react-dom.development.js" crossorigin></script> 
+    -->
+    <script src="libs/react.production.min.js" crossorigin></script>
+    <script src="libs/react-dom.production.min.js" crossorigin></script>
+
     <!-- 3. Local Day.js and locale -->
     <script src="libs/dayjs.min.js"></script>
     <script src="libs/zh-cn.js"></script>
