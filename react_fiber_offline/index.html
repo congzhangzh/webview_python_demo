@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>React Three Fiber (Pure ESM)</title>
+    <style>
+        html, body, #root { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #272727; }
+    </style>
+    <script type="importmap">
+        {
+            "imports": {
+                "react": "https://esm.sh/react@18.3.1?dev",
+                "react/": "https://esm.sh/react@18.3.1&dev/",
+                "react-dom": "https://esm.sh/react-dom@18.3.1?dev",
+                "react-dom/": "https://esm.sh/react-dom@18.3.1&dev/",
+                "@react-three/fiber": "https://esm.sh/@react-three/fiber@8.17.7?dev&external=react,react-dom"
+            }
+        }
+    </script>
+    <script type="text/babel">
+        import React from 'react';
+        import ReactDOM from 'react-dom/client';
+        import { Canvas } from "@react-three/fiber";
+
+        function Game() {
+            // return React.createElement(Canvas, null);
+            return <Canvas camera={{ position: [0, 5, 10] }} resize={{ offsetSize: true }}>
+                <ambientLight intensity={0.5} />
+                <pointLight position={[10, 10, 10]} />
+                <mesh >
+                    <boxGeometry args={[2, 2, 2]} />
+                    <meshStandardMaterial color="green" />
+                </mesh>
+            </Canvas>;
+        }
+        const container = document.getElementById('root');
+        const root = ReactDOM.createRoot(container);
+        root.render(React.createElement(Game, null));
+    </script>    
+    <!-- it's not real offline, it's sending to server to transform the code -->
+    <script type="module" src="https://esm.sh/run"></script>
+    <!-- <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script> -->
+</head>
+    <body>
+        <div id="root"></div>
+    </body>
+</html>
