@@ -16,6 +16,36 @@
             "type": "debugpy",
             "request": "launch",
             "program": "async_support/main_work_example_preact_with_async_support.py"
+        },
+        {
+            "name": "Python Debug: React Backend",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/react_with_build_tools/main_react.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--debug-frontend"
+            ],
+            "cwd": "${workspaceFolder}/react_with_build_tools"
+        },
+        {
+            "name": "Frontend Attach: Webview (React)",
+            "type": "chrome",
+            "request": "attach",
+            "port": 9222,
+            "url": "http://localhost:5173",
+            "webRoot": "${workspaceFolder}/react_with_build_tools",
+            "sourceMaps": true
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Compound Debug: Python + React Frontend",
+            "configurations": [
+                "Python Debug: React Backend",
+                "Frontend Attach: Webview (React)"
+            ],
+            "stopAll": true
         }
     ]
 }
