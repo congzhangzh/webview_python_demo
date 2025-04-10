@@ -183,7 +183,7 @@ def main():
     # Pass pythonnet flags for potential C# integration if needed later
     # webview.config.use_pythonnet = True
     #window = Webview(debug=True)
-    window = Webview(debug=True)
+    window = Webview()
     window.title = "本地程序管理助手 (React)"
     # window.size = Size(1024, 768, SizeHint.NONE) # Set size if needed
 
@@ -227,7 +227,7 @@ def main():
 
 
     # --- Start Webview ---
-    print(f"Starting pywebview window with URL: {frontend_url}")
+    print(f"Starting webview_python window with URL: {frontend_url}")
     window.navigate(frontend_url)
     window.run() # Blocks until the window is closed
 

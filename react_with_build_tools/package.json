@@ -9,11 +9,12 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "start:debug": "concurrently \"npm:dev\" \"python main_react.py --debug-frontend\"",
-    "start:prod": "npm run build && cd .. && python main_react.py"
+    "start:prod": "npm run build && python main_react.py"
   },
   "dependencies": {
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "react-frontend": "file:"
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",

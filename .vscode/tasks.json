@@ -1,0 +1,27 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "startFrontendDevServer", // Task name referenced by preLaunchTask
+        "type": "shell",
+        "command": "npm run dev", // Your command that starts the async server
+        "options": {
+            "cwd": "${workspaceFolder}/react_with_build_tools",
+        },
+        "isBackground": true, // Mark as background task
+        "problemMatcher": [],
+        "group": {
+          "kind": "build",
+          "isDefault": true
+        }
+      },
+      {
+        "label": "buildFrontend",
+        "type": "shell",
+        "command": "npm run build",
+        "options": {
+            "cwd": "${workspaceFolder}/react_with_build_tools",
+        }
+      }
+    ]
+  }

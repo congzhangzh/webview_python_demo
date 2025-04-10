@@ -18,7 +18,7 @@
             "program": "async_support/main_work_example_preact_with_async_support.py"
         },
         {
-            "name": "Python Debug: React Backend",
+            "name": "[dev]Python Debug: React Backend",
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/react_with_build_tools/main_react.py",
@@ -28,27 +28,59 @@
             ],
             "cwd": "${workspaceFolder}/react_with_build_tools",
             "env": {
-                "WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS": " --remote-debugging-port=9222 "
-            }
+                "WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS": "--remote-debugging-port=9222"
+            },
+            "preLaunchTask": "startFrontendDevServer"
         },
         {
-            "name": "Frontend Attach: Webview (React)",
+            "name": "[dev]Frontend Attach: Webview (React)",
             "type": "chrome",
             "request": "attach",
             "port": 9222,
             "url": "http://localhost:5173",
             "webRoot": "${workspaceFolder}/react_with_build_tools",
             "sourceMaps": true
+        },
+        {
+            "name": "[rel]Python Debug: React Backend",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/react_with_build_tools/main_react.py",
+            "console": "integratedTerminal",
+            "args": [],
+            "cwd": "${workspaceFolder}/react_with_build_tools",
+            "env": {
+                "WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS": " --allow-file-access-from-files --user-data-dir=tttt --remote-debugging-port=9222 "
+            }
+        },
+        {
+            "name": "[rel]Frontend Attach: Webview (React)",
+            "type": "chrome",
+            "request": "attach",
+            "port": 9222,
+            "url": "react_with_build_tools/dist/index.html",
+            "webRoot": "${workspaceFolder}/react_with_build_tools",
+            "sourceMaps": true
         }
     ],
     "compounds": [
         {
-            "name": "Compound Debug: Python + React Frontend",
+            "name": "[dev]Compound Debug: Python + React Frontend",
             "configurations": [
-                "Python Debug: React Backend",
-                "Frontend Attach: Webview (React)"
+                "[dev]Python Debug: React Backend",
+                "[dev]Frontend Attach: Webview (React)"
             ],
-            "stopAll": true
+            "stopAll": true,
+            "preLaunchTask": "startFrontendDevServer"
+        },
+        {
+            "name": "[rel]Compound Debug: Python + React Frontend",
+            "configurations": [
+                "[rel]Python Debug: React Backend",
+                "[rel]Frontend Attach: Webview (React)"
+            ],
+            "stopAll": true,
+            "preDebugTask": "buildFrontend"
         }
     ]
 }
