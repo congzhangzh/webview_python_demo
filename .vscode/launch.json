@@ -26,7 +26,10 @@
             "args": [
                 "--debug-frontend"
             ],
-            "cwd": "${workspaceFolder}/react_with_build_tools"
+            "cwd": "${workspaceFolder}/react_with_build_tools",
+            "env": {
+                "WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS": " --remote-debugging-port=9222 "
+            }
         },
         {
             "name": "Frontend Attach: Webview (React)",

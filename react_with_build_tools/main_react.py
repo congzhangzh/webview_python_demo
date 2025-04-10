@@ -18,7 +18,7 @@ VS_CODE_PATH = os.path.join(USER_HOME, ".vscode")
 VS_CONTINUE_PATH = os.path.join(VS_CODE_PATH, "extensions", "continue") # Adjust if needed
 CONAN_HOME = os.path.join(USER_HOME, ".conan")
 PROJECT_ROOT = Path(__file__).parent.resolve()
-REACT_FRONTEND_DIR = PROJECT_ROOT / 'react-frontend'
+REACT_FRONTEND_DIR = PROJECT_ROOT
 REACT_BUILD_DIR = REACT_FRONTEND_DIR / 'dist'
 
 # --- Helper Functions (Copied from main_work_example_preact.py) ---
@@ -171,6 +171,7 @@ def uninstall_cppcheck():
 
 # --- Main Application Logic ---
 def main():
+    # os.environ["WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS"] = " --remote-debugging-port=9222 "
     parser = argparse.ArgumentParser(description="Local App Management Helper with React Frontend")
     parser.add_argument('--debug-frontend', action='store_true',
                         help='Load frontend from Vite dev server (requires `npm run dev` in react-frontend)')
@@ -181,6 +182,7 @@ def main():
     # --- Create Webview Window ---
     # Pass pythonnet flags for potential C# integration if needed later
     # webview.config.use_pythonnet = True
+    #window = Webview(debug=True)
     window = Webview(debug=True)
     window.title = "本地程序管理助手 (React)"
     # window.size = Size(1024, 768, SizeHint.NONE) # Set size if needed
@@ -234,4 +236,4 @@ if __name__ == "__main__":
     print(f"Project Root: {PROJECT_ROOT}")
     print(f"React Frontend Dir: {REACT_FRONTEND_DIR}")
     print(f"React Build Dir: {REACT_BUILD_DIR}")
-    main() 
+    main()
