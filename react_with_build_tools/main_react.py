@@ -179,6 +179,10 @@ def main():
                         help='URL of the Vite dev server')
     args = parser.parse_args()
 
+    if not args.debug_frontend and "WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS" not in os.environ:
+        # os.environ["WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS"]=" --allow-file-access-from-files --user-data-dir=. "
+        os.environ["WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS"]=" --allow-file-access-from-files "
+        pass
     # --- Create Webview Window ---
     # Pass pythonnet flags for potential C# integration if needed later
     # webview.config.use_pythonnet = True
